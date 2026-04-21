@@ -530,7 +530,7 @@ function Scoreboard({ user, courtId }) {
 
               {/* PK履歴 */}
               {period === 'PK' && (
-                <div className="absolute -bottom-6 translate-y-1/2 w-full flex justify-between px-32 md:px-48 z-20 pointer-events-auto">
+                <div className="absolute -bottom-10 translate-y-1/2 w-full flex justify-between px-12 md:px-24 z-30 pointer-events-auto scale-90 md:scale-100">
                   <PkTracker team="home" history={Array.isArray(pkState?.home) ? pkState.home : []} onAdd={(res) => handlePkAction('home', res)} />
                   <PkTracker team="away" history={Array.isArray(pkState?.away) ? pkState.away : []} onAdd={(res) => handlePkAction('away', res)} />
                 </div>
@@ -809,25 +809,25 @@ function PkTracker({ team, history = [], onAdd }) {
   const slots = Array.from({ length: slotsCount });
 
   return (
-    <div className="flex flex-col items-center gap-2 bg-white/80 px-4 py-3 rounded-xl shadow-sm border border-slate-200">
-      <div className="flex items-center gap-1.5">
+    <div className="flex flex-col items-center gap-3 bg-white/90 px-6 py-4 rounded-2xl shadow-lg border border-slate-200 backdrop-blur-sm">
+      <div className="flex items-center gap-2">
         {slots.map((_, i) => {
           const res = safeHistory[i];
           let bgClass = "bg-white border-slate-300 text-slate-300";
           let icon = "-";
-          if (res === 'O') { bgClass = "bg-pink-500 border-pink-500 text-white shadow-sm"; icon = "O"; }
-          if (res === 'X') { bgClass = "bg-slate-400 border-slate-400 text-white"; icon = "X"; }
+          if (res === 'O') { bgClass = "bg-pink-500 border-pink-500 text-white shadow-md"; icon = "O"; }
+          if (res === 'X') { bgClass = "bg-slate-400 border-slate-400 text-white shadow-inner"; icon = "X"; }
           
           return (
-            <div key={i} className={`w-8 h-8 flex items-center justify-center rounded-full border-2 font-black text-sm ${bgClass}`}>
+            <div key={i} className={`w-12 h-12 md:w-14 md:h-14 flex items-center justify-center rounded-full border-[3px] font-black text-xl md:text-2xl ${bgClass}`}>
               {icon}
             </div>
           );
         })}
       </div>
-      <div className="flex gap-2 mt-2">
-        <button onClick={() => onAdd('O')} className="px-3 py-1 bg-white hover:bg-slate-50 text-pink-600 font-bold border border-pink-200 rounded transition-colors tracking-widest text-[10px] uppercase shadow-sm">O 成功</button>
-        <button onClick={() => onAdd('X')} className="px-3 py-1 bg-white hover:bg-slate-50 text-slate-500 font-bold border border-slate-200 rounded transition-colors tracking-widest text-[10px] uppercase shadow-sm">X 失敗</button>
+      <div className="flex gap-3 mt-2">
+        <button onClick={() => onAdd('O')} className="px-5 py-2 bg-white hover:bg-slate-50 text-pink-600 font-black border-2 border-pink-200 rounded-lg transition-colors tracking-widest text-sm uppercase shadow-sm">O 成功</button>
+        <button onClick={() => onAdd('X')} className="px-5 py-2 bg-white hover:bg-slate-50 text-slate-500 font-black border-2 border-slate-200 rounded-lg transition-colors tracking-widest text-sm uppercase shadow-sm">X 失敗</button>
       </div>
     </div>
   );
@@ -1229,21 +1229,25 @@ function ObsScoreboard({ courtId }) {
 
           {/* PK Status Overlay for OBS (水色帯の下部に重ねる) */}
           {data.period === 'PK' && (
-             <div className="absolute top-[60%] -translate-y-1/2 w-full flex justify-between px-32 z-20">
-               <div className="flex gap-1.5 bg-white/80 p-2 rounded-lg shadow-sm border border-slate-200">
-                  {Array.isArray(data.pkState?.home) && data.pkState.home.map((res, i) => {
-                     let bgClass = "bg-white border-slate-300";
-                     if (res === 'O') bgClass = "bg-pink-500 border-pink-500 text-white";
-                     if (res === 'X') bgClass = "bg-slate-400 border-slate-400 text-white";
-                     return <div key={i} className={`w-6 h-6 rounded-full border-2 flex justify-center items-center font-black text-[12px] ${bgClass}`}>{res==='O'?'O':res==='X'?'X':''}</div>
+             <div className="absolute top-[64%] -translate-y-1/2 w-full flex justify-between px-16 z-20">
+               <div className="flex gap-2 bg-white/90 px-4 py-3 rounded-2xl shadow-lg border border-slate-200 backdrop-blur-sm">
+                  {Array.from({ length: Math.max(5, (data.pkState?.home?.length || 0)) }).map((_, i) => {
+                     const res = data.pkState?.home?.[i];
+                     let bgClass = "bg-white border-slate-300 text-slate-300";
+                     let icon = "-";
+                     if (res === 'O') { bgClass = "bg-pink-500 border-pink-500 text-white shadow-md"; icon = "O"; }
+                     if (res === 'X') { bgClass = "bg-slate-400 border-slate-400 text-white shadow-inner"; icon = "X"; }
+                     return <div key={i} className={`w-14 h-14 rounded-full border-[3px] flex justify-center items-center font-black text-2xl ${bgClass}`}>{icon}</div>
                   })}
                </div>
-               <div className="flex gap-1.5 bg-white/80 p-2 rounded-lg shadow-sm border border-slate-200">
-                  {Array.isArray(data.pkState?.away) && data.pkState.away.map((res, i) => {
-                     let bgClass = "bg-white border-slate-300";
-                     if (res === 'O') bgClass = "bg-pink-500 border-pink-500 text-white";
-                     if (res === 'X') bgClass = "bg-slate-400 border-slate-400 text-white";
-                     return <div key={i} className={`w-6 h-6 rounded-full border-2 flex justify-center items-center font-black text-[12px] ${bgClass}`}>{res==='O'?'O':res==='X'?'X':''}</div>
+               <div className="flex gap-2 bg-white/90 px-4 py-3 rounded-2xl shadow-lg border border-slate-200 backdrop-blur-sm">
+                  {Array.from({ length: Math.max(5, (data.pkState?.away?.length || 0)) }).map((_, i) => {
+                     const res = data.pkState?.away?.[i];
+                     let bgClass = "bg-white border-slate-300 text-slate-300";
+                     let icon = "-";
+                     if (res === 'O') { bgClass = "bg-pink-500 border-pink-500 text-white shadow-md"; icon = "O"; }
+                     if (res === 'X') { bgClass = "bg-slate-400 border-slate-400 text-white shadow-inner"; icon = "X"; }
+                     return <div key={i} className={`w-14 h-14 rounded-full border-[3px] flex justify-center items-center font-black text-2xl ${bgClass}`}>{icon}</div>
                   })}
                </div>
              </div>
