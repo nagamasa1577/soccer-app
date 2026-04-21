@@ -144,7 +144,7 @@ function MainController() {
       {/* メニューボタン */}
       <button 
         onClick={() => setIsMenuOpen(!isMenuOpen)}
-        className="absolute top-4 right-4 z-[100] w-12 h-12 bg-pink-600 rounded border border-pink-400 flex items-center justify-center text-white hover:bg-pink-700 transition-colors shadow-lg"
+        className="absolute top-4 right-4 z-[100] w-12 h-12 bg-slate-800/60 rounded border border-white/10 flex items-center justify-center text-white/80 hover:bg-slate-700 hover:text-white transition-colors shadow-lg backdrop-blur-md"
       >
         <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 20 20" fill="currentColor">
           <path fillRule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287-.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" />
@@ -455,24 +455,26 @@ function Scoreboard({ user, courtId }) {
     <div className="flex flex-col items-center justify-center min-h-screen p-2 font-sans text-white touch-pinch-zoom select-none overscroll-none">
       <div className="transform scale-[0.8] md:scale-95 origin-center w-full max-w-5xl flex flex-col items-center relative z-20">
         
-        {/* 大会名（枠の外側） */}
+        {/* 大会名（枠の外側） - ブラックアウトラインでくっきりと */}
         <div 
-          className="text-white text-5xl md:text-7xl font-black tracking-[0.2em] mb-8 cursor-pointer pointer-events-auto uppercase drop-shadow-[0_4px_4px_rgba(0,0,0,0.5)]"
+          className="text-white text-5xl md:text-7xl font-black tracking-[0.2em] mb-8 cursor-pointer pointer-events-auto uppercase drop-shadow-xl"
+          style={{ WebkitTextStroke: "2px black", textShadow: "0px 4px 8px rgba(0,0,0,0.6)" }}
           onClick={() => setShowSettingsModal(true)}
         >
            {String(tournamentName || "")}
         </div>
 
         {/* Main Board Container (Pop & Clean Style) */}
-        <div className="relative w-full aspect-[16/9] rounded-2xl border-[3px] border-white/60 shadow-[0_20px_50px_rgba(0,0,0,0.8)] flex flex-col overflow-hidden backdrop-blur-md">
+        <div className="relative w-full aspect-[16/9] rounded-2xl border-[3px] border-white/60 shadow-[0_20px_50px_rgba(0,0,0,0.8)] flex flex-col overflow-hidden backdrop-blur-sm">
           
-          {/* 背景グループ (ツートン＆斜めラインを完全に背後レイヤーに固定) */}
+          {/* 背景グループ (ツートン＆斜めラインを完全に背後レイヤーに固定・透過度アップ) */}
           <div className="absolute inset-0 z-0 pointer-events-none">
              <div className="absolute inset-0 flex flex-col">
-                <div className="flex-[3] bg-white/85"></div>
-                <div className="flex-[1] bg-pink-50/85"></div>
+                <div className="flex-[3] bg-white/60"></div>
+                <div className="flex-[1] bg-pink-400/40"></div>
              </div>
-             <div className="absolute inset-0 opacity-40" style={{ backgroundImage: "repeating-linear-gradient(-45deg, transparent, transparent 15px, rgba(255,255,255,0.4) 15px, rgba(255,255,255,0.4) 30px)" }}></div>
+             {/* ストライプも少し弱めて透け感を重視 */}
+             <div className="absolute inset-0 opacity-30" style={{ backgroundImage: "repeating-linear-gradient(-45deg, transparent, transparent 15px, rgba(255,255,255,0.4) 15px, rgba(255,255,255,0.4) 30px)" }}></div>
           </div>
           
           {/* コンテンツの配置レイヤー (isolationで背景との干渉を遮断) */}
@@ -526,7 +528,7 @@ function Scoreboard({ user, courtId }) {
                 </div>
               </div>
 
-              {/* PK履歴（PK時のみ表示。水色帯の下部に配置） */}
+              {/* PK履歴 */}
               {period === 'PK' && (
                 <div className="absolute -bottom-6 translate-y-1/2 w-full flex justify-between px-32 md:px-48 z-20 pointer-events-auto">
                   <PkTracker team="home" history={Array.isArray(pkState?.home) ? pkState.home : []} onAdd={(res) => handlePkAction('home', res)} />
@@ -535,23 +537,31 @@ function Scoreboard({ user, courtId }) {
               )}
             </div>
 
-            {/* 下段：タイム表示 (桃色背景部分) */}
-            <div className="flex-1 flex items-center justify-center pointer-events-auto relative">
+            {/* 下段：タイム表示 (縦書き＆センター配置) */}
+            <div className="flex-1 flex items-center justify-center pointer-events-auto relative w-full h-full">
               
-              <div className={`flex items-baseline gap-6 cursor-pointer transition-colors duration-200 ${isOverTime && period !== 'End' && period !== 'PK' ? 'text-pink-600 drop-shadow-[0_2px_10px_rgba(219,39,119,0.3)]' : 'text-[#0f172a] drop-shadow-sm'}`} onClick={period !== 'End' && period !== 'PK' ? toggleTimer : undefined}>
+              <div className={`absolute inset-0 flex items-center justify-center cursor-pointer transition-colors duration-200 ${isOverTime && period !== 'End' && period !== 'PK' ? 'text-pink-600 drop-shadow-[0_2px_10px_rgba(219,39,119,0.3)]' : 'text-[#0f172a] drop-shadow-sm'}`} onClick={period !== 'End' && period !== 'PK' ? toggleTimer : undefined}>
                  {period === 'PK' ? (
-                    <span className="text-6xl md:text-7xl font-black tracking-widest">PK戦</span>
+                    <span className="text-6xl md:text-7xl font-black tracking-widest z-10">PK戦</span>
                  ) : (
-                    <>
-                       <span className="text-4xl md:text-5xl font-black tracking-widest">{String(getPeriodKanji())}</span>
-                       {period !== 'End' && <span className="text-7xl md:text-8xl font-mono font-black tabular-nums tracking-tighter">{String(formattedTime)}</span>}
-                    </>
+                    <div className="relative flex items-center justify-center w-full h-full">
+                       {/* 縦書きの「前半」など */}
+                       <span 
+                          className="absolute right-[50%] mr-[4rem] md:mr-[5.5rem] text-2xl md:text-3xl font-black tracking-widest opacity-80"
+                          style={{ writingMode: 'vertical-rl', textOrientation: 'upright', letterSpacing: '0.1em' }}
+                       >
+                          {String(getPeriodKanji())}
+                       </span>
+                       
+                       {/* センター配置のタイム */}
+                       {period !== 'End' && <span className="text-[5.5rem] md:text-[7.5rem] font-mono font-black tabular-nums tracking-tighter leading-none z-10 mt-2">{String(formattedTime)}</span>}
+                    </div>
                  )}
               </div>
               
               {/* ロスタイム表示 */}
               {additionalTime > 0 && period !== 'End' && period !== 'PK' && (
-                <div className="absolute right-[20%] bg-pink-600 border border-white text-white font-black text-4xl px-4 py-1 rounded shadow-md">
+                <div className="absolute right-[20%] bg-pink-600 border border-white text-white font-black text-4xl px-4 py-1 rounded shadow-md z-20">
                   +{Number(additionalTime)}
                 </div>
               )}
@@ -583,19 +593,19 @@ function Scoreboard({ user, courtId }) {
 
           </div>
 
-          {/* Layer 3: Controls (四隅に絶対配置 - 濃いピンクのボタン) */}
+          {/* Layer 3: Controls (ステルス化された操作ボタン) */}
           
           {/* 右上：⚙️設定アイコン */}
           <button 
             onClick={() => setShowSettingsModal(true)} 
-            className="absolute top-6 right-6 w-12 h-12 bg-pink-600 hover:bg-pink-700 text-white rounded-full border border-pink-400 flex items-center justify-center text-xl transition-colors shadow-md z-30"
+            className="absolute top-6 right-6 w-12 h-12 bg-slate-800/40 hover:bg-slate-800/70 text-white/70 hover:text-white rounded-full border border-white/20 flex items-center justify-center text-xl transition-colors shadow-md z-30 backdrop-blur-sm"
           >
             ⚙️
           </button>
 
           {/* 左下：ロスタイム設定＆終了ボタン */}
           <div className="absolute bottom-6 left-6 flex gap-3 z-30">
-            <button onClick={() => { saveHistory(); setAdditionalTime(prev => prev + 1); }} className="px-5 py-3 bg-pink-600 hover:bg-pink-700 border border-pink-400 text-white text-sm font-black tracking-widest rounded shadow-md transition-colors uppercase">
+            <button onClick={() => { saveHistory(); setAdditionalTime(prev => prev + 1); }} className="px-5 py-3 bg-slate-800/40 hover:bg-slate-800/70 border border-white/20 text-white/80 hover:text-white text-sm font-black tracking-widest rounded shadow-md transition-colors uppercase backdrop-blur-sm">
                ロスタイム
             </button>
             {period === '1st' && <ConfirmButton label="前半終了" onConfirm={() => handlePeriodEnd('1stEnd')} positionClass="relative" />}
@@ -606,8 +616,8 @@ function Scoreboard({ user, courtId }) {
 
           {/* 右下：UNDO / REDO */}
           <div className="absolute bottom-6 right-6 flex gap-2 z-30">
-            <button onClick={handleUndo} disabled={history.length === 0} title="UNDO" className={`w-12 h-12 flex items-center justify-center bg-pink-600 border border-pink-400 text-white rounded text-xl font-black transition-colors shadow-md ${history.length===0?'opacity-30':'hover:bg-pink-700'}`}>↶</button>
-            <button onClick={handleRedo} disabled={future.length === 0} title="REDO" className={`w-12 h-12 flex items-center justify-center bg-pink-600 border border-pink-400 text-white rounded text-xl font-black transition-colors shadow-md ${future.length===0?'opacity-30':'hover:bg-pink-700'}`}>↷</button>
+            <button onClick={handleUndo} disabled={history.length === 0} title="UNDO" className={`w-12 h-12 flex items-center justify-center bg-slate-800/40 hover:bg-slate-800/70 border border-white/20 text-white/80 hover:text-white rounded text-xl font-black transition-colors shadow-md backdrop-blur-sm ${history.length===0?'opacity-30':''}`}>↶</button>
+            <button onClick={handleRedo} disabled={future.length === 0} title="REDO" className={`w-12 h-12 flex items-center justify-center bg-slate-800/40 hover:bg-slate-800/70 border border-white/20 text-white/80 hover:text-white rounded text-xl font-black transition-colors shadow-md backdrop-blur-sm ${future.length===0?'opacity-30':''}`}>↷</button>
           </div>
 
         </div>
@@ -822,7 +832,7 @@ function PkTracker({ team, history = [], onAdd }) {
 }
 
 // ==========================================
-// Reusable Confirm Button
+// Reusable Confirm Button (ステルス化)
 // ==========================================
 function ConfirmButton({ label, onConfirm, positionClass }) {
   const [status, setStatus] = useState("IDLE"); 
@@ -831,7 +841,7 @@ function ConfirmButton({ label, onConfirm, positionClass }) {
   
   return (
     <button onClick={handleClick} className={`z-50 group ${positionClass}`}>
-      <span className={`block px-5 py-3 text-sm font-black tracking-widest rounded border border-pink-400 transition-colors duration-200 uppercase shadow-md ${status === "CONFIRMING" ? `bg-pink-800 text-white` : "bg-pink-600 text-white hover:bg-pink-700"}`}>
+      <span className={`block px-5 py-3 text-sm font-black tracking-widest rounded border transition-colors duration-200 uppercase shadow-md backdrop-blur-sm ${status === "CONFIRMING" ? 'bg-red-600/90 border-red-500 text-white' : 'bg-slate-800/40 hover:bg-slate-800/70 border-white/20 text-white/80 hover:text-white'}`}>
         {status === "CONFIRMING" ? `${label}？` : label}
       </span>
     </button>
@@ -1019,15 +1029,15 @@ function MiniBoard({ courtId, onRemove, user }) {
   if (!data) return <div className="w-[448px] h-[240px] bg-white border border-slate-200 rounded-lg flex items-center justify-center text-slate-400 font-bold tracking-widest relative">LOADING...</div>;
 
   return (
-    <div className="relative w-[448px] h-[240px] rounded-lg overflow-hidden border border-white/60 shadow-xl group flex flex-col justify-between backdrop-blur-md">
+    <div className="relative w-[448px] h-[240px] rounded-lg overflow-hidden border border-white/60 shadow-xl group flex flex-col justify-between backdrop-blur-sm">
       
       {/* 背景グループ */}
       <div className="absolute inset-0 z-0 pointer-events-none">
          <div className="absolute inset-0 flex flex-col">
-            <div className="flex-[3] bg-white/85"></div>
-            <div className="flex-[1] bg-pink-50/85"></div>
+            <div className="flex-[3] bg-white/60"></div>
+            <div className="flex-[1] bg-pink-400/40"></div>
          </div>
-         <div className="absolute inset-0 opacity-40" style={{ backgroundImage: "repeating-linear-gradient(-45deg, transparent, transparent 10px, rgba(255,255,255,0.4) 10px, rgba(255,255,255,0.4) 20px)" }}></div>
+         <div className="absolute inset-0 opacity-30" style={{ backgroundImage: "repeating-linear-gradient(-45deg, transparent, transparent 10px, rgba(255,255,255,0.4) 10px, rgba(255,255,255,0.4) 20px)" }}></div>
       </div>
 
       <button 
@@ -1127,21 +1137,25 @@ function ObsScoreboard({ courtId }) {
       <style>{"body { background-color: transparent !important; margin: 0; padding: 0; overflow: hidden; }"}</style>
       <div style={{ width: '800px', height: '450px' }} className="relative bg-transparent font-sans select-none text-white pointer-events-none transform origin-top-left flex flex-col items-center">
         
-        {/* 大会名（枠外） */}
-        <div className="text-white text-6xl font-black tracking-[0.2em] mb-6 mt-2 uppercase drop-shadow-[0_4px_4px_rgba(0,0,0,0.8)]">
+        {/* 大会名（枠外） - ブラックアウトライン化 */}
+        <div 
+          className="text-white text-6xl font-black tracking-[0.2em] mb-6 mt-2 uppercase drop-shadow-xl"
+          style={{ WebkitTextStroke: "2px black", textShadow: "0px 4px 8px rgba(0,0,0,0.6)" }}
+        >
              {String(data.tournamentName || "")}
         </div>
 
         {/* Obs Container (Pop & Clean Style - Glassmorphism) */}
-        <div className="w-full flex-1 rounded-xl border-[3px] border-white/60 shadow-[0_20px_50px_rgba(0,0,0,0.5)] flex flex-col overflow-hidden relative mb-4 backdrop-blur-md">
+        <div className="w-full flex-1 rounded-xl border-[3px] border-white/60 shadow-[0_20px_50px_rgba(0,0,0,0.5)] flex flex-col overflow-hidden relative mb-4 backdrop-blur-sm">
           
-          {/* 背景グループ */}
+          {/* 背景グループ (透過度アップ・すりガラス感強調) */}
           <div className="absolute inset-0 z-0 pointer-events-none">
              <div className="absolute inset-0 flex flex-col">
-                <div className="flex-[3] bg-white/85"></div>
-                <div className="flex-[1] bg-pink-50/85"></div>
+                <div className="flex-[3] bg-white/60"></div>
+                <div className="flex-[1] bg-pink-400/40"></div>
              </div>
-             <div className="absolute inset-0 opacity-40" style={{ backgroundImage: "repeating-linear-gradient(-45deg, transparent, transparent 15px, rgba(255,255,255,0.4) 15px, rgba(255,255,255,0.4) 30px)" }}></div>
+             {/* ストライプも透過度を合わせて調整 */}
+             <div className="absolute inset-0 opacity-30" style={{ backgroundImage: "repeating-linear-gradient(-45deg, transparent, transparent 15px, rgba(255,255,255,0.4) 15px, rgba(255,255,255,0.4) 30px)" }}></div>
           </div>
 
           <div className="relative z-10 w-full h-full flex flex-col" style={{ isolation: 'isolate' }}>
@@ -1174,24 +1188,33 @@ function ObsScoreboard({ courtId }) {
               </div>
             </div>
 
-            {/* 下段：桃色背景のタイム */}
-            <div className="flex-1 flex items-center justify-center relative">
-               <div className={`flex items-baseline gap-6 ${isOverTime && data.period !== 'End' && data.period !== 'PK' ? 'text-pink-600 drop-shadow-[0_2px_10px_rgba(219,39,119,0.3)]' : 'text-[#0f172a] drop-shadow-sm'}`}>
+            {/* 下段：桃色背景のタイム (縦書き＆センター配置) */}
+            <div className="flex-1 flex items-center justify-center relative w-full h-full">
+               
+               <div className={`absolute inset-0 flex items-center justify-center transition-colors duration-200 ${isOverTime && data.period !== 'End' && data.period !== 'PK' ? 'text-pink-600 drop-shadow-[0_2px_10px_rgba(219,39,119,0.3)]' : 'text-[#0f172a] drop-shadow-sm'}`}>
                   {data.period === 'PK' ? (
-                     <span className="text-5xl font-black tracking-widest">PK戦</span>
+                     <span className="text-5xl font-black tracking-widest z-10">PK戦</span>
                   ) : (
-                     <>
-                        <span className="text-4xl font-black tracking-widest uppercase">
+                     <div className="relative flex items-center justify-center w-full h-full">
+                        {/* 縦書きの「前半」など */}
+                        <span 
+                           className="absolute right-[50%] mr-[4rem] text-2xl font-black tracking-widest opacity-80"
+                           style={{ writingMode: 'vertical-rl', textOrientation: 'upright', letterSpacing: '0.1em' }}
+                        >
                            {data.period === '1st' ? '前半' : 
                             data.period === '2nd' ? '後半' : 
                             data.period === '1stEX' ? '延長前半' : 
-                            data.period === '2ndEX' ? '延長後半' : '試合終了'}
+                            data.period === '2ndEX' ? '延長後半' : '終了'}
                         </span>
-                        {data.period !== 'End' && <span className="text-7xl font-mono font-black tabular-nums tracking-tighter">{String(formattedTime)}</span>}
-                     </>
+                        
+                        {/* センター配置のタイム */}
+                        {data.period !== 'End' && <span className="text-[6.5rem] font-mono font-black tabular-nums tracking-tighter leading-none z-10 mt-1">{String(formattedTime)}</span>}
+                     </div>
                   )}
                </div>
-               {data.additionalTime > 0 && data.period !== 'PK' && <div className="absolute right-[20%] bg-pink-600 border border-white text-white font-black text-4xl px-4 py-1 rounded shadow-md">+{Number(data.additionalTime)}</div>}
+               
+               {/* ロスタイム表示 */}
+               {data.additionalTime > 0 && data.period !== 'PK' && <div className="absolute right-[20%] bg-pink-600 border border-white text-white font-black text-4xl px-4 py-1 rounded shadow-md z-20">+{Number(data.additionalTime)}</div>}
             </div>
 
           </div>
