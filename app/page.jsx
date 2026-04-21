@@ -521,7 +521,14 @@ function Scoreboard({ user, courtId }) {
                    {Number(score?.home || 0)}
                 </div>
               </div>
-              <div className="text-6xl md:text-8xl font-black text-white/50">-</div>
+              
+              {/* PK戦の時はハイフンを消して「PK戦」と中央に表示 */}
+              {period === 'PK' ? (
+                <div className="text-5xl md:text-7xl font-black tracking-widest text-white drop-shadow-md z-10 whitespace-nowrap">PK戦</div>
+              ) : (
+                <div className="text-6xl md:text-8xl font-black text-white/50">-</div>
+              )}
+              
               <div className="flex-1 flex justify-center">
                 <div onClick={() => handleScoreChange('away', 1)} className="text-[9rem] md:text-[14rem] leading-none font-mono font-black text-white cursor-pointer hover:text-cyan-100 transition-colors drop-shadow-md select-none tabular-nums">
                    {Number(score?.away || 0)}
@@ -541,9 +548,8 @@ function Scoreboard({ user, courtId }) {
             <div className="flex-1 flex items-center justify-center pointer-events-auto relative w-full h-full">
               
               <div className={`absolute inset-0 flex items-center justify-center cursor-pointer transition-colors duration-200 ${isOverTime && period !== 'End' && period !== 'PK' ? 'text-pink-600 drop-shadow-[0_2px_10px_rgba(219,39,119,0.3)]' : 'text-[#0f172a] drop-shadow-sm'}`} onClick={period !== 'End' && period !== 'PK' ? toggleTimer : undefined}>
-                 {period === 'PK' ? (
-                    <span className="text-6xl md:text-7xl font-black tracking-widest z-10">PK戦</span>
-                 ) : (
+                 {/* PK戦の時は下段を空にする */}
+                 {period === 'PK' ? null : (
                     <div className="relative flex items-center justify-center">
                        {/* 縦書きの「前半」など (グレーのマット付き、タイムの左隣に固定) */}
                        <div className="absolute right-[100%] mr-4 md:mr-6 bg-slate-800/10 px-1.5 py-3 md:py-4 rounded-lg flex items-center justify-center shadow-inner">
@@ -1186,7 +1192,14 @@ function ObsScoreboard({ courtId }) {
               <div className="flex-1 flex justify-center">
                 <div className="text-[10rem] leading-none font-mono font-black text-white drop-shadow-md tabular-nums">{Number(data.score?.home || 0)}</div>
               </div>
-              <div className="text-7xl font-black text-white/50">-</div>
+              
+              {/* PK戦の時はハイフンを消して「PK戦」と中央に表示 (OBS側) */}
+              {data.period === 'PK' ? (
+                <div className="text-6xl font-black tracking-widest text-white drop-shadow-md z-10 whitespace-nowrap">PK戦</div>
+              ) : (
+                <div className="text-7xl font-black text-white/50">-</div>
+              )}
+
               <div className="flex-1 flex justify-center">
                 <div className="text-[10rem] leading-none font-mono font-black text-white drop-shadow-md tabular-nums">{Number(data.score?.away || 0)}</div>
               </div>
@@ -1222,9 +1235,8 @@ function ObsScoreboard({ courtId }) {
             <div className="flex-1 flex items-center justify-center relative w-full h-full">
                
                <div className={`absolute inset-0 flex items-center justify-center transition-colors duration-200 ${isOverTime && data.period !== 'End' && data.period !== 'PK' ? 'text-pink-600 drop-shadow-[0_2px_10px_rgba(219,39,119,0.3)]' : 'text-[#0f172a] drop-shadow-sm'}`}>
-                  {data.period === 'PK' ? (
-                     <span className="text-5xl font-black tracking-widest z-10">PK戦</span>
-                  ) : (
+                  {/* PK戦の時は下段を空にする (OBS側) */}
+                  {data.period === 'PK' ? null : (
                      <div className="relative flex items-center justify-center">
                         {/* 縦書きの「前半」など (グレーのマット付き、タイムの左隣に固定) */}
                         <div className="absolute right-[100%] mr-5 bg-slate-800/10 px-2 py-4 rounded-lg flex items-center justify-center shadow-inner">
