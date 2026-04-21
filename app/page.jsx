@@ -515,7 +515,7 @@ function Scoreboard({ user, courtId }) {
             </div>
 
             {/* 中段：水色のお洒落ベース (得点エリア) */}
-            <div className="h-[40%] w-full bg-gradient-to-r from-cyan-400/90 to-cyan-500/90 shadow-md flex items-center justify-center gap-10 md:gap-32 px-12 pointer-events-auto relative backdrop-blur-sm">
+            <div className="h-[40%] w-full bg-gradient-to-r from-cyan-400/90 to-cyan-500/90 shadow-md flex items-center justify-center gap-10 md:gap-32 px-12 pointer-events-auto relative backdrop-blur-sm z-20">
               <div className="flex-1 flex justify-center">
                 <div onClick={() => handleScoreChange('home', 1)} className="text-[9rem] md:text-[14rem] leading-none font-mono font-black text-white cursor-pointer hover:text-cyan-100 transition-colors drop-shadow-md select-none tabular-nums">
                    {Number(score?.home || 0)}
@@ -607,9 +607,11 @@ function Scoreboard({ user, courtId }) {
 
           {/* 左下：ロスタイム設定＆終了ボタン */}
           <div className="absolute bottom-6 left-6 flex gap-3 z-30">
-            <button onClick={() => { saveHistory(); setAdditionalTime(prev => prev + 1); }} className="px-5 py-3 bg-slate-800/40 hover:bg-slate-800/70 border border-white/20 text-white/80 hover:text-white text-sm font-black tracking-widest rounded shadow-md transition-colors uppercase backdrop-blur-sm">
-               ロスタイム
-            </button>
+            {period !== 'PK' && (
+              <button onClick={() => { saveHistory(); setAdditionalTime(prev => prev + 1); }} className="px-5 py-3 bg-slate-800/40 hover:bg-slate-800/70 border border-white/20 text-white/80 hover:text-white text-sm font-black tracking-widest rounded shadow-md transition-colors uppercase backdrop-blur-sm">
+                 ロスタイム
+              </button>
+            )}
             {period === '1st' && <ConfirmButton label="前半終了" onConfirm={() => handlePeriodEnd('1stEnd')} positionClass="relative" />}
             {period === '2nd' && <ConfirmButton label="後半終了" onConfirm={() => handlePeriodEnd('2ndEnd')} positionClass="relative" />}
             {period === '1stEX' && <ConfirmButton label="前半終了" onConfirm={() => handlePeriodEnd('1stExEnd')} positionClass="relative" />}
@@ -1180,7 +1182,7 @@ function ObsScoreboard({ courtId }) {
             </div>
 
             {/* 中段：水色帯の得点 */}
-            <div className="h-[40%] w-full bg-gradient-to-r from-cyan-400/90 to-cyan-500/90 shadow-md flex items-center justify-center gap-12 px-12 relative backdrop-blur-sm">
+            <div className="h-[40%] w-full bg-gradient-to-r from-cyan-400/90 to-cyan-500/90 shadow-md flex items-center justify-center gap-12 px-12 relative backdrop-blur-sm z-20">
               <div className="flex-1 flex justify-center">
                 <div className="text-[10rem] leading-none font-mono font-black text-white drop-shadow-md tabular-nums">{Number(data.score?.home || 0)}</div>
               </div>
@@ -1188,6 +1190,32 @@ function ObsScoreboard({ courtId }) {
               <div className="flex-1 flex justify-center">
                 <div className="text-[10rem] leading-none font-mono font-black text-white drop-shadow-md tabular-nums">{Number(data.score?.away || 0)}</div>
               </div>
+
+              {/* PK Status Overlay for OBS (水色帯の下部に重ねる) */}
+              {data.period === 'PK' && (
+                 <div className="absolute -bottom-10 translate-y-1/2 w-full flex justify-between px-16 z-30 pointer-events-auto">
+                   <div className="flex gap-2 bg-white/90 px-4 py-3 rounded-2xl shadow-lg border border-slate-200 backdrop-blur-sm">
+                      {Array.from({ length: Math.max(5, (data.pkState?.home?.length || 0)) }).map((_, i) => {
+                         const res = data.pkState?.home?.[i];
+                         let bgClass = "bg-white border-slate-300 text-slate-300";
+                         let icon = "-";
+                         if (res === 'O') { bgClass = "bg-pink-500 border-pink-500 text-white shadow-md"; icon = "O"; }
+                         if (res === 'X') { bgClass = "bg-slate-400 border-slate-400 text-white shadow-inner"; icon = "X"; }
+                         return <div key={i} className={`w-14 h-14 rounded-full border-[3px] flex justify-center items-center font-black text-2xl ${bgClass}`}>{icon}</div>
+                      })}
+                   </div>
+                   <div className="flex gap-2 bg-white/90 px-4 py-3 rounded-2xl shadow-lg border border-slate-200 backdrop-blur-sm">
+                      {Array.from({ length: Math.max(5, (data.pkState?.away?.length || 0)) }).map((_, i) => {
+                         const res = data.pkState?.away?.[i];
+                         let bgClass = "bg-white border-slate-300 text-slate-300";
+                         let icon = "-";
+                         if (res === 'O') { bgClass = "bg-pink-500 border-pink-500 text-white shadow-md"; icon = "O"; }
+                         if (res === 'X') { bgClass = "bg-slate-400 border-slate-400 text-white shadow-inner"; icon = "X"; }
+                         return <div key={i} className={`w-14 h-14 rounded-full border-[3px] flex justify-center items-center font-black text-2xl ${bgClass}`}>{icon}</div>
+                      })}
+                   </div>
+                 </div>
+              )}
             </div>
 
             {/* 下段：桃色背景のタイム (縦書き＆センター配置) */}
@@ -1226,32 +1254,6 @@ function ObsScoreboard({ courtId }) {
             </div>
 
           </div>
-
-          {/* PK Status Overlay for OBS (水色帯の下部に重ねる) */}
-          {data.period === 'PK' && (
-             <div className="absolute top-[64%] -translate-y-1/2 w-full flex justify-between px-16 z-20">
-               <div className="flex gap-2 bg-white/90 px-4 py-3 rounded-2xl shadow-lg border border-slate-200 backdrop-blur-sm">
-                  {Array.from({ length: Math.max(5, (data.pkState?.home?.length || 0)) }).map((_, i) => {
-                     const res = data.pkState?.home?.[i];
-                     let bgClass = "bg-white border-slate-300 text-slate-300";
-                     let icon = "-";
-                     if (res === 'O') { bgClass = "bg-pink-500 border-pink-500 text-white shadow-md"; icon = "O"; }
-                     if (res === 'X') { bgClass = "bg-slate-400 border-slate-400 text-white shadow-inner"; icon = "X"; }
-                     return <div key={i} className={`w-14 h-14 rounded-full border-[3px] flex justify-center items-center font-black text-2xl ${bgClass}`}>{icon}</div>
-                  })}
-               </div>
-               <div className="flex gap-2 bg-white/90 px-4 py-3 rounded-2xl shadow-lg border border-slate-200 backdrop-blur-sm">
-                  {Array.from({ length: Math.max(5, (data.pkState?.away?.length || 0)) }).map((_, i) => {
-                     const res = data.pkState?.away?.[i];
-                     let bgClass = "bg-white border-slate-300 text-slate-300";
-                     let icon = "-";
-                     if (res === 'O') { bgClass = "bg-pink-500 border-pink-500 text-white shadow-md"; icon = "O"; }
-                     if (res === 'X') { bgClass = "bg-slate-400 border-slate-400 text-white shadow-inner"; icon = "X"; }
-                     return <div key={i} className={`w-14 h-14 rounded-full border-[3px] flex justify-center items-center font-black text-2xl ${bgClass}`}>{icon}</div>
-                  })}
-               </div>
-             </div>
-          )}
 
         </div>
       </div>
