@@ -544,9 +544,9 @@ function Scoreboard({ user, courtId }) {
                  {period === 'PK' ? (
                     <span className="text-6xl md:text-7xl font-black tracking-widest z-10">PK戦</span>
                  ) : (
-                    <div className="flex items-center justify-center gap-4 md:gap-6 w-full h-full">
-                       {/* 縦書きの「前半」など (グレーのマット付き) */}
-                       <div className="bg-slate-800/10 px-1.5 py-3 md:py-4 rounded-lg flex items-center justify-center shadow-inner">
+                    <div className="relative flex items-center justify-center">
+                       {/* 縦書きの「前半」など (グレーのマット付き、タイムの左隣に固定) */}
+                       <div className="absolute right-[100%] mr-4 md:mr-6 bg-slate-800/10 px-1.5 py-3 md:py-4 rounded-lg flex items-center justify-center shadow-inner">
                           <span 
                              className="text-xl md:text-2xl font-black tracking-widest opacity-80"
                              style={{ writingMode: 'vertical-rl', textOrientation: 'upright', letterSpacing: '0.1em' }}
@@ -555,19 +555,19 @@ function Scoreboard({ user, courtId }) {
                           </span>
                        </div>
                        
-                       {/* センター配置のタイム (枠に収まるよう少しサイズダウン) */}
+                       {/* センター配置のタイム (常にど真ん中) */}
                        {period !== 'End' && <span className="text-[4.5rem] md:text-[6.5rem] font-mono font-black tabular-nums tracking-tighter leading-none z-10">{String(formattedTime)}</span>}
+
+                       {/* ロスタイム表示 (タイムの右隣に固定) */}
+                       {additionalTime > 0 && period !== 'End' && period !== 'PK' && (
+                         <div className="absolute left-[100%] ml-4 md:ml-6 bg-pink-600 border border-white text-white font-black text-3xl md:text-4xl px-3 py-1 md:px-4 rounded shadow-md z-20">
+                           +{Number(additionalTime)}
+                         </div>
+                       )}
                     </div>
                  )}
               </div>
               
-              {/* ロスタイム表示 */}
-              {additionalTime > 0 && period !== 'End' && period !== 'PK' && (
-                <div className="absolute right-[20%] bg-pink-600 border border-white text-white font-black text-4xl px-4 py-1 rounded shadow-md z-20">
-                  +{Number(additionalTime)}
-                </div>
-              )}
-
               {/* 試合終了時の前後半別スコア表示 */}
               {period === 'End' && (
                 <div className="absolute top-0 -translate-y-1/2 bg-white border-2 border-cyan-400 px-8 py-2 rounded-full flex gap-10 text-[#0f172a] font-bold tracking-widest shadow-md z-30 uppercase">
@@ -1197,9 +1197,9 @@ function ObsScoreboard({ courtId }) {
                   {data.period === 'PK' ? (
                      <span className="text-5xl font-black tracking-widest z-10">PK戦</span>
                   ) : (
-                     <div className="flex items-center justify-center gap-5 w-full h-full">
-                        {/* 縦書きの「前半」など (グレーのマット付き) */}
-                        <div className="bg-slate-800/10 px-2 py-4 rounded-lg flex items-center justify-center shadow-inner">
+                     <div className="relative flex items-center justify-center">
+                        {/* 縦書きの「前半」など (グレーのマット付き、タイムの左隣に固定) */}
+                        <div className="absolute right-[100%] mr-5 bg-slate-800/10 px-2 py-4 rounded-lg flex items-center justify-center shadow-inner">
                            <span 
                               className="text-2xl font-black tracking-widest opacity-80"
                               style={{ writingMode: 'vertical-rl', textOrientation: 'upright', letterSpacing: '0.1em' }}
@@ -1211,14 +1211,18 @@ function ObsScoreboard({ courtId }) {
                            </span>
                         </div>
                         
-                        {/* センター配置のタイム (枠に収まるよう少しサイズダウン) */}
+                        {/* センター配置のタイム (常にど真ん中) */}
                         {data.period !== 'End' && <span className="text-[5.5rem] font-mono font-black tabular-nums tracking-tighter leading-none z-10">{String(formattedTime)}</span>}
+
+                        {/* ロスタイム表示 (タイムの右隣に固定) */}
+                        {data.additionalTime > 0 && data.period !== 'PK' && (
+                          <div className="absolute left-[100%] ml-5 bg-pink-600 border border-white text-white font-black text-4xl px-4 py-1 rounded shadow-md z-20">
+                            +{Number(data.additionalTime)}
+                          </div>
+                        )}
                      </div>
                   )}
                </div>
-               
-               {/* ロスタイム表示 */}
-               {data.additionalTime > 0 && data.period !== 'PK' && <div className="absolute right-[20%] bg-pink-600 border border-white text-white font-black text-4xl px-4 py-1 rounded shadow-md z-20">+{Number(data.additionalTime)}</div>}
             </div>
 
           </div>
