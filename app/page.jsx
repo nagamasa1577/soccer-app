@@ -458,7 +458,7 @@ function Scoreboard({ user, courtId }) {
         {/* 大会名（枠の外側） - ブラックアウトラインでくっきりと */}
         <div 
           className="text-white text-5xl md:text-7xl font-black tracking-[0.2em] mb-8 cursor-pointer pointer-events-auto uppercase drop-shadow-xl"
-          style={{ WebkitTextStroke: "2px black", textShadow: "0px 4px 8px rgba(0,0,0,0.6)" }}
+          style={{ textShadow: "2px 2px 0 #000, -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 0px 2px 0 #000, 0px -2px 0 #000, 2px 0px 0 #000, -2px 0px 0 #000, 0px 6px 12px rgba(0,0,0,0.5)" }}
           onClick={() => setShowSettingsModal(true)}
         >
            {String(tournamentName || "")}
@@ -470,11 +470,11 @@ function Scoreboard({ user, courtId }) {
           {/* 背景グループ (ツートン＆斜めラインを完全に背後レイヤーに固定・透過度アップ) */}
           <div className="absolute inset-0 z-0 pointer-events-none">
              <div className="absolute inset-0 flex flex-col">
-                <div className="flex-[3] bg-white/60"></div>
-                <div className="flex-[1] bg-pink-400/40"></div>
+                <div className="flex-[3] bg-white/85"></div>
+                <div className="flex-[1] bg-pink-50/85"></div>
              </div>
              {/* ストライプも少し弱めて透け感を重視 */}
-             <div className="absolute inset-0 opacity-30" style={{ backgroundImage: "repeating-linear-gradient(-45deg, transparent, transparent 15px, rgba(255,255,255,0.4) 15px, rgba(255,255,255,0.4) 30px)" }}></div>
+             <div className="absolute inset-0 opacity-40" style={{ backgroundImage: "repeating-linear-gradient(-45deg, transparent, transparent 15px, rgba(255,255,255,0.4) 15px, rgba(255,255,255,0.4) 30px)" }}></div>
           </div>
           
           {/* コンテンツの配置レイヤー (isolationで背景との干渉を遮断) */}
@@ -544,17 +544,19 @@ function Scoreboard({ user, courtId }) {
                  {period === 'PK' ? (
                     <span className="text-6xl md:text-7xl font-black tracking-widest z-10">PK戦</span>
                  ) : (
-                    <div className="relative flex items-center justify-center w-full h-full">
-                       {/* 縦書きの「前半」など */}
-                       <span 
-                          className="absolute right-[50%] mr-[4rem] md:mr-[5.5rem] text-2xl md:text-3xl font-black tracking-widest opacity-80"
-                          style={{ writingMode: 'vertical-rl', textOrientation: 'upright', letterSpacing: '0.1em' }}
-                       >
-                          {String(getPeriodKanji())}
-                       </span>
+                    <div className="flex items-center justify-center gap-4 md:gap-6 w-full h-full">
+                       {/* 縦書きの「前半」など (グレーのマット付き) */}
+                       <div className="bg-slate-800/10 px-1.5 py-3 md:py-4 rounded-lg flex items-center justify-center shadow-inner">
+                          <span 
+                             className="text-xl md:text-2xl font-black tracking-widest opacity-80"
+                             style={{ writingMode: 'vertical-rl', textOrientation: 'upright', letterSpacing: '0.1em' }}
+                          >
+                             {String(getPeriodKanji())}
+                          </span>
+                       </div>
                        
-                       {/* センター配置のタイム */}
-                       {period !== 'End' && <span className="text-[5.5rem] md:text-[7.5rem] font-mono font-black tabular-nums tracking-tighter leading-none z-10 mt-2">{String(formattedTime)}</span>}
+                       {/* センター配置のタイム (枠に収まるよう少しサイズダウン) */}
+                       {period !== 'End' && <span className="text-[4.5rem] md:text-[6.5rem] font-mono font-black tabular-nums tracking-tighter leading-none z-10">{String(formattedTime)}</span>}
                     </div>
                  )}
               </div>
@@ -1140,7 +1142,7 @@ function ObsScoreboard({ courtId }) {
         {/* 大会名（枠外） - ブラックアウトライン化 */}
         <div 
           className="text-white text-6xl font-black tracking-[0.2em] mb-6 mt-2 uppercase drop-shadow-xl"
-          style={{ WebkitTextStroke: "2px black", textShadow: "0px 4px 8px rgba(0,0,0,0.6)" }}
+          style={{ textShadow: "2px 2px 0 #000, -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 0px 2px 0 #000, 0px -2px 0 #000, 2px 0px 0 #000, -2px 0px 0 #000, 0px 6px 12px rgba(0,0,0,0.5)" }}
         >
              {String(data.tournamentName || "")}
         </div>
@@ -1151,11 +1153,11 @@ function ObsScoreboard({ courtId }) {
           {/* 背景グループ (透過度アップ・すりガラス感強調) */}
           <div className="absolute inset-0 z-0 pointer-events-none">
              <div className="absolute inset-0 flex flex-col">
-                <div className="flex-[3] bg-white/60"></div>
-                <div className="flex-[1] bg-pink-400/40"></div>
+                <div className="flex-[3] bg-white/85"></div>
+                <div className="flex-[1] bg-pink-50/85"></div>
              </div>
              {/* ストライプも透過度を合わせて調整 */}
-             <div className="absolute inset-0 opacity-30" style={{ backgroundImage: "repeating-linear-gradient(-45deg, transparent, transparent 15px, rgba(255,255,255,0.4) 15px, rgba(255,255,255,0.4) 30px)" }}></div>
+             <div className="absolute inset-0 opacity-40" style={{ backgroundImage: "repeating-linear-gradient(-45deg, transparent, transparent 15px, rgba(255,255,255,0.4) 15px, rgba(255,255,255,0.4) 30px)" }}></div>
           </div>
 
           <div className="relative z-10 w-full h-full flex flex-col" style={{ isolation: 'isolate' }}>
@@ -1195,20 +1197,22 @@ function ObsScoreboard({ courtId }) {
                   {data.period === 'PK' ? (
                      <span className="text-5xl font-black tracking-widest z-10">PK戦</span>
                   ) : (
-                     <div className="relative flex items-center justify-center w-full h-full">
-                        {/* 縦書きの「前半」など */}
-                        <span 
-                           className="absolute right-[50%] mr-[4rem] text-2xl font-black tracking-widest opacity-80"
-                           style={{ writingMode: 'vertical-rl', textOrientation: 'upright', letterSpacing: '0.1em' }}
-                        >
-                           {data.period === '1st' ? '前半' : 
-                            data.period === '2nd' ? '後半' : 
-                            data.period === '1stEX' ? '延長前半' : 
-                            data.period === '2ndEX' ? '延長後半' : '終了'}
-                        </span>
+                     <div className="flex items-center justify-center gap-5 w-full h-full">
+                        {/* 縦書きの「前半」など (グレーのマット付き) */}
+                        <div className="bg-slate-800/10 px-2 py-4 rounded-lg flex items-center justify-center shadow-inner">
+                           <span 
+                              className="text-2xl font-black tracking-widest opacity-80"
+                              style={{ writingMode: 'vertical-rl', textOrientation: 'upright', letterSpacing: '0.1em' }}
+                           >
+                              {data.period === '1st' ? '前半' : 
+                               data.period === '2nd' ? '後半' : 
+                               data.period === '1stEX' ? '延長前半' : 
+                               data.period === '2ndEX' ? '延長後半' : '終了'}
+                           </span>
+                        </div>
                         
-                        {/* センター配置のタイム */}
-                        {data.period !== 'End' && <span className="text-[6.5rem] font-mono font-black tabular-nums tracking-tighter leading-none z-10 mt-1">{String(formattedTime)}</span>}
+                        {/* センター配置のタイム (枠に収まるよう少しサイズダウン) */}
+                        {data.period !== 'End' && <span className="text-[5.5rem] font-mono font-black tabular-nums tracking-tighter leading-none z-10">{String(formattedTime)}</span>}
                      </div>
                   )}
                </div>
