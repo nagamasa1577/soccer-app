@@ -649,8 +649,10 @@ function Scoreboard({ user, courtId }) {
               <div className="flex-1 flex items-center justify-center pointer-events-auto relative w-full h-full">
                 
                 <div className={`absolute inset-0 flex items-center justify-center cursor-pointer transition-colors duration-200 ${isOverTime && period !== 'End' && period !== 'PK' ? 'text-pink-600 drop-shadow-[0_2px_10px_rgba(219,39,119,0.3)]' : 'text-[#0f172a] drop-shadow-sm'}`} onClick={period !== 'End' && period !== 'PK' ? toggleTimer : undefined}>
-                   {/* PK戦の時は下段を空にする */}
-                   {period === 'PK' ? null : (
+                   {/* PK戦の時は下段を空にする、試合終了時は横書きで大きく表示 */}
+                   {period === 'PK' ? null : period === 'End' ? (
+                      <span className="text-5xl md:text-7xl font-black tracking-widest z-10">試合終了</span>
+                   ) : (
                       <div className="relative flex items-center justify-center">
                          {/* 縦に文字を積み上げる（100%確実な縦書き） */}
                          <div className="absolute right-[100%] mr-2 md:mr-6 bg-slate-800/10 px-2 py-3 md:px-2.5 md:py-4 rounded-lg flex items-center justify-center shadow-inner">
@@ -661,11 +663,11 @@ function Scoreboard({ user, courtId }) {
                             </div>
                          </div>
                          
-                         {/* センター配置のタイム (スマホ時は少しだけ小さくしてスペース確保) */}
-                         {period !== 'End' && <span className="text-[4rem] md:text-[6.5rem] font-mono font-black tabular-nums tracking-tighter leading-none z-10">{String(formattedTime)}</span>}
+                         {/* センター配置のタイム */}
+                         <span className="text-[4rem] md:text-[6.5rem] font-mono font-black tabular-nums tracking-tighter leading-none z-10">{String(formattedTime)}</span>
 
                          {/* ロスタイム表示 (タイムの右隣に固定) */}
-                         {additionalTime > 0 && period !== 'End' && period !== 'PK' && (
+                         {additionalTime > 0 && (
                            <div className="absolute left-[100%] ml-4 md:ml-6 bg-pink-600 border border-white text-white font-black text-3xl md:text-4xl px-3 py-1 md:px-4 rounded shadow-md z-20">
                              +{Number(additionalTime)}
                            </div>
@@ -1335,8 +1337,10 @@ function ObsScoreboard({ courtId }) {
             <div className="flex-1 flex items-center justify-center relative w-full h-full">
                
                <div className={`absolute inset-0 flex items-center justify-center transition-colors duration-200 ${isOverTime && data.period !== 'End' && data.period !== 'PK' ? 'text-pink-600 drop-shadow-[0_2px_10px_rgba(219,39,119,0.3)]' : 'text-[#0f172a] drop-shadow-sm'}`}>
-                  {/* PK戦の時は下段を空にする (OBS側) */}
-                  {data.period === 'PK' ? null : (
+                  {/* PK戦の時は下段を空にする、試合終了時は横書きで大きく表示 (OBS側) */}
+                  {data.period === 'PK' ? null : data.period === 'End' ? (
+                     <span className="text-6xl font-black tracking-widest z-10">試合終了</span>
+                  ) : (
                      <div className="relative flex items-center justify-center">
                         {/* 縦に文字を積み上げる（100%確実な縦書き / OBS側） */}
                         <div className="absolute right-[100%] mr-5 bg-slate-800/10 px-2.5 py-4 rounded-lg flex items-center justify-center shadow-inner">
@@ -1350,11 +1354,11 @@ function ObsScoreboard({ courtId }) {
                            </div>
                         </div>
                         
-                        {/* センター配置のタイム (常にど真ん中) */}
-                        {data.period !== 'End' && <span className="text-[5.5rem] font-mono font-black tabular-nums tracking-tighter leading-none z-10">{String(formattedTime)}</span>}
+                        {/* センター配置のタイム */}
+                        <span className="text-[5.5rem] font-mono font-black tabular-nums tracking-tighter leading-none z-10">{String(formattedTime)}</span>
 
                         {/* ロスタイム表示 (タイムの右隣に固定) */}
-                        {data.additionalTime > 0 && data.period !== 'PK' && (
+                        {data.additionalTime > 0 && (
                           <div className="absolute left-[100%] ml-5 bg-pink-600 border border-white text-white font-black text-4xl px-4 py-1 rounded shadow-md z-20">
                             +{Number(data.additionalTime)}
                           </div>
