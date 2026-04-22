@@ -490,10 +490,7 @@ function Scoreboard({ user, courtId }) {
   };
 
   return (
-    <div 
-      className="flex flex-col items-center justify-center min-h-screen p-2 font-sans text-white select-none overscroll-none"
-      style={{ touchAction: 'pinch-zoom' }}
-    >
+    <div className="flex flex-col items-center justify-center min-h-screen p-2 font-sans text-white select-none overscroll-none">
       <div className="transform scale-[0.8] md:scale-95 origin-center w-full max-w-5xl flex flex-col items-center relative z-20">
         
         {/* 大会名（枠の外側） - ブラックアウトラインでくっきりと */}
