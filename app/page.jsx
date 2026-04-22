@@ -1207,7 +1207,10 @@ function MiniBoard({ courtId, onRemove, user }) {
          </div>
       </div>
       
-      <div className="absolute top-2 left-3 text-[10px] font-bold text-slate-400 uppercase z-10">{String(courtId)}</div>
+      {/* 修正：コートIDを左上に目立つバッジとして表示 */}
+      <div className="absolute top-0 left-0 bg-pink-600 text-white text-[10px] md:text-xs font-black px-3 py-1 rounded-br-lg shadow-md uppercase z-30 tracking-widest border-r border-b border-pink-700">
+         ID: {String(courtId)}
+      </div>
     </div>
   );
 }
