@@ -1210,26 +1210,28 @@ function MiniBoard({ courtId, onRemove, user }) {
             </div>
 
             {/* PK Status Overlay for MiniBoard (縮小版) */}
-            {(data.period === 'PK' || (data.period === 'End' && (data.pkState?.home?.length > 0 || data.pkState?.away?.length > 0))) && (
+            {(data.period === 'PK' || (data.period === 'End' && (homeKicks > 0 || awayKicks > 0))) && (
                <div className="absolute -bottom-5 translate-y-1/2 w-full flex justify-between px-8 z-30 pointer-events-auto">
-                 <div className="flex gap-1 bg-white/90 px-2 py-1.5 rounded-xl shadow-md border border-slate-200 backdrop-blur-sm">
-                    {Array.from({ length: Math.max(5, (data.pkState?.home?.length || 0)) }).map((_, i) => {
+                 {/* ▼ 修正：w-[160px] で幅を固定し、確実に5個で2段目に折り返させる */}
+                 <div className="flex gap-1 bg-white/90 px-2 py-1.5 rounded-xl shadow-md border border-slate-200 backdrop-blur-sm w-[160px] flex-wrap justify-center">
+                    {Array.from({ length: pkSlotsCount }).map((_, i) => {
                        const res = data.pkState?.home?.[i];
                        let bgClass = "bg-white border-slate-300 text-slate-300";
                        let icon = "-";
                        if (res === 'O') { bgClass = "bg-pink-500 border-pink-500 text-white shadow-sm"; icon = "O"; }
                        if (res === 'X') { bgClass = "bg-slate-400 border-slate-400 text-white shadow-inner"; icon = "X"; }
-                       return <div key={i} className={`w-6 h-6 rounded-full border-[2px] flex justify-center items-center font-black text-[10px] ${bgClass}`}>{icon}</div>
+                       return <div key={i} className={`w-6 h-6 rounded-full border-[2px] flex justify-center items-center font-black text-[10px] shrink-0 ${bgClass}`}>{icon}</div>
                     })}
                  </div>
-                 <div className="flex gap-1 bg-white/90 px-2 py-1.5 rounded-xl shadow-md border border-slate-200 backdrop-blur-sm">
-                    {Array.from({ length: Math.max(5, (data.pkState?.away?.length || 0)) }).map((_, i) => {
+                 {/* ▼ 修正：w-[160px] で幅を固定 */}
+                 <div className="flex gap-1 bg-white/90 px-2 py-1.5 rounded-xl shadow-md border border-slate-200 backdrop-blur-sm w-[160px] flex-wrap justify-center">
+                    {Array.from({ length: pkSlotsCount }).map((_, i) => {
                        const res = data.pkState?.away?.[i];
                        let bgClass = "bg-white border-slate-300 text-slate-300";
                        let icon = "-";
                        if (res === 'O') { bgClass = "bg-pink-500 border-pink-500 text-white shadow-sm"; icon = "O"; }
                        if (res === 'X') { bgClass = "bg-slate-400 border-slate-400 text-white shadow-inner"; icon = "X"; }
-                       return <div key={i} className={`w-6 h-6 rounded-full border-[2px] flex justify-center items-center font-black text-[10px] ${bgClass}`}>{icon}</div>
+                       return <div key={i} className={`w-6 h-6 rounded-full border-[2px] flex justify-center items-center font-black text-[10px] shrink-0 ${bgClass}`}>{icon}</div>
                     })}
                  </div>
                </div>
@@ -1256,9 +1258,9 @@ function MiniBoard({ courtId, onRemove, user }) {
             </div>
             {data.additionalTime > 0 && data.period !== 'PK' && data.period !== 'End' && <span className="absolute right-4 bg-pink-600 border border-white text-white px-2 py-0.5 rounded shadow-sm font-black text-sm">+{Number(data.additionalTime)}</span>}
          
-            {/* 試合終了時の前後半別スコア表示 (MiniBoard用) */}
+            {/* ▼ 修正：PK履歴が2段になっても重ならないよう、配置を top-0 から bottom-2 へ移動 */}
             {data.period === 'End' && (
-              <div className="absolute top-0 -translate-y-1/2 bg-white border-2 border-cyan-400 px-4 py-1.5 rounded-full flex gap-4 text-[#0f172a] font-bold tracking-widest shadow-md z-30 uppercase text-[10px]">
+              <div className="absolute bottom-2 bg-white border border-cyan-400 px-3 py-1 rounded-full flex gap-3 text-[#0f172a] font-bold tracking-widest shadow-md z-30 uppercase text-[9px]">
                  <div>前半: {Number(data.firstHalfScore?.home || 0)} - {Number(data.firstHalfScore?.away || 0)}</div>
                  {(() => {
                     const homeArr = Array.isArray(data.pkState?.home) ? data.pkState.home : [];
