@@ -1308,6 +1308,12 @@ function ObsScoreboard({ courtId }) {
   const currentDuration = (data?.period === '1stEX' || data?.period === '2ndEX') ? data?.extraTimeDuration : data?.halfTimeDuration;
   const { formattedTime, isOverTime } = useTimer(data?.timer, currentDuration);
 
+  // ▼ 追加：枠数計算
+  const homeKicks = Array.isArray(data?.pkState?.home) ? data.pkState.home.length : 0;
+  const awayKicks = Array.isArray(data?.pkState?.away) ? data.pkState.away.length : 0;
+  const maxKicks = Math.max(homeKicks, awayKicks);
+  const pkSlotsCount = Math.max(5, homeKicks === awayKicks ? maxKicks + 1 : maxKicks);
+
   if (!data) return null;
   
   return (
@@ -1372,27 +1378,27 @@ function ObsScoreboard({ courtId }) {
                 <div className="text-[10rem] leading-none font-mono font-black text-white drop-shadow-md tabular-nums">{Number(data.score?.away || 0)}</div>
               </div>
 
-              {/* PK Status Overlay for OBS (水色帯の下部に重ねる：試合終了後も履歴を残す) */}
-              {(data.period === 'PK' || (data.period === 'End' && (data.pkState?.home?.length > 0 || data.pkState?.away?.length > 0))) && (
+              {/* ▼ 修正：PK Status Overlay for OBS (折り返し対応) */}
+              {(data.period === 'PK' || (data.period === 'End' && (homeKicks > 0 || awayKicks > 0))) && (
                  <div className="absolute -bottom-10 translate-y-1/2 w-full flex justify-between px-16 z-30 pointer-events-auto">
-                   <div className="flex gap-2 bg-white/90 px-4 py-3 rounded-2xl shadow-lg border border-slate-200 backdrop-blur-sm">
-                      {Array.from({ length: Math.max(5, (data.pkState?.home?.length || 0)) }).map((_, i) => {
+                   <div className="flex gap-2 bg-white/90 px-4 py-3 rounded-2xl shadow-lg border border-slate-200 backdrop-blur-sm max-w-[48%] flex-wrap justify-center">
+                      {Array.from({ length: pkSlotsCount }).map((_, i) => {
                          const res = data.pkState?.home?.[i];
                          let bgClass = "bg-white border-slate-300 text-slate-300";
                          let icon = "-";
                          if (res === 'O') { bgClass = "bg-pink-500 border-pink-500 text-white shadow-md"; icon = "O"; }
                          if (res === 'X') { bgClass = "bg-slate-400 border-slate-400 text-white shadow-inner"; icon = "X"; }
-                         return <div key={i} className={`w-14 h-14 rounded-full border-[3px] flex justify-center items-center font-black text-2xl ${bgClass}`}>{icon}</div>
+                         return <div key={i} className={`w-10 h-10 md:w-12 md:h-12 rounded-full border-[3px] flex justify-center items-center font-black text-xl shrink-0 ${bgClass}`}>{icon}</div>
                       })}
                    </div>
-                   <div className="flex gap-2 bg-white/90 px-4 py-3 rounded-2xl shadow-lg border border-slate-200 backdrop-blur-sm">
-                      {Array.from({ length: Math.max(5, (data.pkState?.away?.length || 0)) }).map((_, i) => {
+                   <div className="flex gap-2 bg-white/90 px-4 py-3 rounded-2xl shadow-lg border border-slate-200 backdrop-blur-sm max-w-[48%] flex-wrap justify-center">
+                      {Array.from({ length: pkSlotsCount }).map((_, i) => {
                          const res = data.pkState?.away?.[i];
                          let bgClass = "bg-white border-slate-300 text-slate-300";
                          let icon = "-";
                          if (res === 'O') { bgClass = "bg-pink-500 border-pink-500 text-white shadow-md"; icon = "O"; }
                          if (res === 'X') { bgClass = "bg-slate-400 border-slate-400 text-white shadow-inner"; icon = "X"; }
-                         return <div key={i} className={`w-14 h-14 rounded-full border-[3px] flex justify-center items-center font-black text-2xl ${bgClass}`}>{icon}</div>
+                         return <div key={i} className={`w-10 h-10 md:w-12 md:h-12 rounded-full border-[3px] flex justify-center items-center font-black text-xl shrink-0 ${bgClass}`}>{icon}</div>
                       })}
                    </div>
                  </div>
