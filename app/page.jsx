@@ -63,23 +63,28 @@ function MainController() {
 
   useEffect(() => {
     let isMounted = true;
+    
+    // Canvas用トークンがある場合のみ初期化（通常のWeb公開時は無視されます）
     const initAuth = async () => {
       try {
         if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
           await signInWithCustomToken(auth, __initial_auth_token);
-        } else {
-          await signInAnonymously(auth);
         }
+        // ※誰でも入れる「匿名ログイン」を削除し、ちゃんとログイン画面が出るようにしました
       } catch (err) {
         console.error("Auth init error:", err);
-        if (isMounted) setLoading(false);
       }
     };
     initAuth();
 
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       if (isMounted) {
-        setUser(currentUser);
+        // OBS観覧用の「匿名ユーザー」は操作画面ではログインさせない
+        if (currentUser && currentUser.isAnonymous) {
+          setUser(null);
+        } else {
+          setUser(currentUser);
+        }
         setLoading(false);
       }
     }, (authErr) => {
@@ -99,7 +104,7 @@ function MainController() {
     try {
       await signInWithEmailAndPassword(auth, email, password);
     } catch (err) {
-      setError("ログインに失敗しました。");
+      setError("ログインに失敗しました。メールアドレスまたはパスワードを確認してください。");
     }
   };
 
@@ -109,9 +114,42 @@ function MainController() {
     return <div className="min-h-screen bg-black flex items-center justify-center text-pink-500 font-black tracking-widest uppercase">LOADING...</div>;
   }
 
+  // ------------------------------------------
+  // ▼ ログイン画面（未ログイン時に表示）
+  // ------------------------------------------
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center font-sans text-white touch-pinch-zoom select-none">
+        <div className="bg-slate-900/80 p-10 rounded-2xl border border-slate-700 shadow-[0_20px_50px_rgba(0,0,0,0.5)] w-[400px] max-w-[90vw] flex flex-col gap-8 backdrop-blur-md">
+          <div className="text-center">
+            <h1 className="text-3xl md:text-4xl font-black tracking-[0.1em] uppercase mb-2" style={{ textShadow: "0 4px 8px rgba(0,0,0,0.5)" }}>LOGIN</h1>
+            <p className="text-pink-500 text-xs font-bold tracking-widest uppercase">Soccer Scoreboard System</p>
+          </div>
+          <form onSubmit={handleLogin} className="flex flex-col gap-5">
+            <div className="flex flex-col gap-2">
+              <label className="text-slate-400 text-xs font-bold tracking-widest uppercase">Email</label>
+              <input type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="name@example.com" className="w-full bg-slate-800 text-white px-4 py-3 rounded border border-slate-600 focus:border-pink-500 focus:ring-1 focus:ring-pink-500 focus:outline-none font-bold placeholder:text-slate-500 transition-colors" required />
+            </div>
+            <div className="flex flex-col gap-2">
+              <label className="text-slate-400 text-xs font-bold tracking-widest uppercase">Password</label>
+              <input type="password" value={password} onChange={e=>setPassword(e.target.value)} placeholder="••••••••" className="w-full bg-slate-800 text-white px-4 py-3 rounded border border-slate-600 focus:border-pink-500 focus:ring-1 focus:ring-pink-500 focus:outline-none font-bold placeholder:text-slate-500 transition-colors" required />
+            </div>
+            {error && <div className="text-red-400 text-xs font-bold tracking-widest leading-relaxed bg-red-500/10 p-3 rounded border border-red-500/20">{error}</div>}
+            <button type="submit" className="w-full bg-pink-600 hover:bg-pink-700 text-white font-black py-4 rounded transition-colors tracking-[0.2em] mt-4 uppercase shadow-md text-lg">
+              SIGN IN
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
+  // ------------------------------------------
+  // ▼ 権限（RBAC）の設定
+  // ------------------------------------------
   const safeEmail = user?.email || "";
   const isSuperAdmin = safeEmail === "abctv1@abctv.com";
-  const isGroupAdmin = safeEmail.startsWith("boysleague_hannan");
+  const isGroupAdmin = safeEmail.startsWith("cerezo"); // ←プレフィックスを cerezo に変更
   const isAdmin = isSuperAdmin || isGroupAdmin;
 
   if (currentView === "dashboard" && isAdmin) {
@@ -872,7 +910,7 @@ function AdminDashboard({ user, onBack }) {
 
   const safeEmail = user?.email || "";
   const isSuperAdmin = safeEmail === "abctv1@abctv.com";
-  const groupPrefix = "boysleague_hannan";
+  const groupPrefix = "cerezo"; // ←ここも cerezo に変更
 
   useEffect(() => {
     try {
