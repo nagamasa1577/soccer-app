@@ -570,8 +570,8 @@ function Scoreboard({ user, courtId }) {
           {/* Main Board Container (Pop & Clean Style) */}
           <div className="relative w-full aspect-[16/9] rounded-2xl border-[3px] border-white/60 shadow-[0_20px_50px_rgba(0,0,0,0.8)] flex flex-col overflow-hidden backdrop-blur-sm">
             
-            {/* 背景グループ */}
-            <div className="absolute inset-0 z-0 pointer-events-none">
+            {/* 背景グループ (ここに flex flex-col を復活！) */}
+            <div className="absolute inset-0 z-0 pointer-events-none flex flex-col">
                 <div className="flex-[3] bg-white/85"></div>
                 <div className="flex-[1] bg-pink-50/85"></div>
             </div>
