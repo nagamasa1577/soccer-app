@@ -49,6 +49,114 @@ export default function App() {
 }
 
 // ==========================================
+// Pinch Zoom & Pan Container (カスタムズーム機能)
+// ==========================================
+function PinchZoomWrapper({ children }) {
+  const [transform, setTransform] = useState({ scale: 1, x: 0, y: 0 });
+  const state = useRef({
+    startDistance: null,
+    startScale: 1,
+    startPan: { x: 0, y: 0 },
+    startCenter: { x: 0, y: 0 }
+  });
+
+  const onTouchStart = (e) => {
+    if (e.touches.length === 2) {
+      const t1 = e.touches[0];
+      const t2 = e.touches[1];
+      const dist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+      const cx = (t1.clientX + t2.clientX) / 2;
+      const cy = (t1.clientY + t2.clientY) / 2;
+
+      state.current = {
+        startDistance: dist,
+        startScale: transform.scale,
+        startPan: { x: transform.x, y: transform.y },
+        startCenter: { x: cx, y: cy }
+      };
+    }
+  };
+
+  const onTouchMove = (e) => {
+    if (e.touches.length === 2) {
+      const t1 = e.touches[0];
+      const t2 = e.touches[1];
+      const dist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+      const cx = (t1.clientX + t2.clientX) / 2;
+      const cy = (t1.clientY + t2.clientY) / 2;
+
+      const scaleRatio = dist / state.current.startDistance;
+      let newScale = state.current.startScale * scaleRatio;
+      newScale = Math.max(0.3, Math.min(newScale, 5)); 
+
+      const dx = cx - state.current.startCenter.x;
+      const dy = cy - state.current.startCenter.y;
+
+      setTransform({
+        scale: newScale,
+        x: state.current.startPan.x + dx,
+        y: state.current.startPan.y + dy
+      });
+    }
+  };
+
+  const onTouchEnd = () => {
+    state.current.startDistance = null;
+  };
+
+  return (
+    <div 
+      className="absolute inset-0 touch-none select-none flex items-center justify-center overflow-hidden"
+      onTouchStart={onTouchStart}
+      onTouchMove={onTouchMove}
+      onTouchEnd={onTouchEnd}
+      onTouchCancel={onTouchEnd}
+    >
+      <div 
+        className="will-change-transform origin-center flex flex-col items-center justify-center"
+        style={{ transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.scale})` }}
+      >
+        {children}
+      </div>
+    </div>
+  );
+}
+
+// ==========================================
+// Custom Hook for Timer logic (自立同期型タイマー)
+// ==========================================
+function useTimer(timerData, durationMinutes = 20) {
+  const [displayTime, setDisplayTime] = useState(0);
+
+  useEffect(() => {
+    let reqId;
+    const update = () => {
+      if (timerData?.isRunning && timerData?.startTime) {
+        const now = Date.now();
+        const diff = now - timerData.startTime;
+        setDisplayTime((timerData.accumulated || 0) + diff);
+      } else {
+        setDisplayTime(timerData?.accumulated || 0);
+      }
+      reqId = requestAnimationFrame(update);
+    };
+    reqId = requestAnimationFrame(update);
+    return () => cancelAnimationFrame(reqId);
+  }, [timerData]);
+
+  const validTime = isNaN(displayTime) ? 0 : Math.max(0, displayTime);
+  const totalSeconds = Math.floor(validTime / 1000);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  const formattedTime = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+  
+  const isOverTime = durationMinutes > 0 && totalSeconds >= (durationMinutes * 60);
+
+  return { displayTime: validTime, formattedTime, isOverTime };
+}
+
+
+// ==========================================
 // ② 通常の操作画面
 // ==========================================
 function MainController() {
@@ -63,14 +171,11 @@ function MainController() {
 
   useEffect(() => {
     let isMounted = true;
-    
-    // Canvas用トークンがある場合のみ初期化（通常のWeb公開時は無視されます）
     const initAuth = async () => {
       try {
         if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
           await signInWithCustomToken(auth, __initial_auth_token);
         }
-        // ※誰でも入れる「匿名ログイン」を削除し、ちゃんとログイン画面が出るようにしました
       } catch (err) {
         console.error("Auth init error:", err);
       }
@@ -79,7 +184,6 @@ function MainController() {
 
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       if (isMounted) {
-        // OBS観覧用の「匿名ユーザー」は操作画面ではログインさせない
         if (currentUser && currentUser.isAnonymous) {
           setUser(null);
         } else {
@@ -114,12 +218,10 @@ function MainController() {
     return <div className="min-h-screen bg-black flex items-center justify-center text-pink-500 font-black tracking-widest uppercase">LOADING...</div>;
   }
 
-  // ------------------------------------------
-  // ▼ ログイン画面（未ログイン時に表示）
-  // ------------------------------------------
+  // ログイン画面
   if (!user) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center font-sans text-white touch-pinch-zoom select-none">
+      <div className="min-h-screen bg-black flex items-center justify-center font-sans text-white select-none">
         <div className="bg-slate-900/80 p-10 rounded-2xl border border-slate-700 shadow-[0_20px_50px_rgba(0,0,0,0.5)] w-[400px] max-w-[90vw] flex flex-col gap-8 backdrop-blur-md">
           <div className="text-center">
             <h1 className="text-3xl md:text-4xl font-black tracking-[0.1em] uppercase mb-2" style={{ textShadow: "0 4px 8px rgba(0,0,0,0.5)" }}>LOGIN</h1>
@@ -144,12 +246,10 @@ function MainController() {
     );
   }
 
-  // ------------------------------------------
-  // ▼ 権限（RBAC）の設定
-  // ------------------------------------------
+  // 権限設定
   const safeEmail = user?.email || "";
   const isSuperAdmin = safeEmail === "abctv1@abctv.com";
-  const isGroupAdmin = safeEmail.startsWith("cerezo"); // ←プレフィックスを cerezo に変更
+  const isGroupAdmin = safeEmail.startsWith("cerezo");
   const isAdmin = isSuperAdmin || isGroupAdmin;
 
   if (currentView === "dashboard" && isAdmin) {
@@ -177,7 +277,7 @@ function MainController() {
   };
 
   return (
-    <div className="relative bg-black min-h-screen font-sans">
+    <div className="fixed inset-0 bg-black overflow-hidden font-sans">
       
       {/* メニューボタン */}
       <button 
@@ -220,46 +320,11 @@ function MainController() {
         </div>
       )}
 
-      <div onClick={() => setIsMenuOpen(false)} className="relative z-10 pt-10 pb-20 w-full flex justify-center"> 
+      <div onClick={() => setIsMenuOpen(false)} className="absolute inset-0 z-10"> 
         <Scoreboard user={user} courtId={courtId} />
       </div>
     </div>
   );
-}
-
-// ==========================================
-// Custom Hook for Timer logic (自立同期型タイマー)
-// ==========================================
-function useTimer(timerData, durationMinutes = 20) {
-  const [displayTime, setDisplayTime] = useState(0);
-
-  useEffect(() => {
-    let reqId;
-    const update = () => {
-      if (timerData?.isRunning && timerData?.startTime) {
-        const now = Date.now();
-        const diff = now - timerData.startTime;
-        setDisplayTime((timerData.accumulated || 0) + diff);
-      } else {
-        setDisplayTime(timerData?.accumulated || 0);
-      }
-      reqId = requestAnimationFrame(update);
-    };
-    reqId = requestAnimationFrame(update);
-    return () => cancelAnimationFrame(reqId);
-  }, [timerData]);
-
-  // mm:ss format
-  const validTime = isNaN(displayTime) ? 0 : Math.max(0, displayTime);
-  const totalSeconds = Math.floor(validTime / 1000);
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = totalSeconds % 60;
-  const formattedTime = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-  
-  // 設定時間をオーバーしているかどうかの判定フラグ
-  const isOverTime = durationMinutes > 0 && totalSeconds >= (durationMinutes * 60);
-
-  return { displayTime: validTime, formattedTime, isOverTime };
 }
 
 
@@ -305,20 +370,20 @@ function Scoreboard({ user, courtId }) {
           if(d.halfTimeDuration !== undefined) setHalfTimeDuration(d.halfTimeDuration);
           if(d.extraTimeDuration !== undefined) setExtraTimeDuration(d.extraTimeDuration);
           if(d.hasExtraTime !== undefined) setHasExtraTime(d.hasExtraTime);
-        if(d.hasPK !== undefined) setHasPK(d.hasPK);
-        if(d.period) setPeriod(d.period);
-        if(d.score) setScore(d.score);
-        if(d.teamNames) setTeamNames(d.teamNames);
-        if(d.teamColors) setTeamColors(d.teamColors);
-        if(d.timer) setTimer(d.timer);
-        if(d.additionalTime !== undefined) setAdditionalTime(d.additionalTime);
+          if(d.hasPK !== undefined) setHasPK(d.hasPK);
+          if(d.period) setPeriod(d.period);
+          if(d.score) setScore(d.score);
+          if(d.teamNames) setTeamNames(d.teamNames);
+          if(d.teamColors) setTeamColors(d.teamColors);
+          if(d.timer) setTimer(d.timer);
+          if(d.additionalTime !== undefined) setAdditionalTime(d.additionalTime);
           if(d.pkState) setPkState(d.pkState);
           if(d.firstHalfScore) setFirstHalfScore(d.firstHalfScore);
         }
         if (isMounted) setIsLoaded(true);
       } catch (err) {
         console.error("Data fetch error", err);
-        if (isMounted) setIsLoaded(true); // エラーでも画面は出す
+        if (isMounted) setIsLoaded(true); 
       }
     };
     fetchInitialData();
@@ -376,7 +441,6 @@ function Scoreboard({ user, courtId }) {
     setFuture(f => f.slice(0, -1)); 
   };
 
-  // Timer Controls
   const toggleTimer = () => {
     saveHistory();
     if (timer.isRunning) {
@@ -490,186 +554,186 @@ function Scoreboard({ user, courtId }) {
   };
 
   return (
-    <div className="w-full px-2 font-sans text-white select-none flex flex-col items-center">
-      <div className="transform scale-[0.8] md:scale-95 origin-top w-full max-w-5xl flex flex-col items-center relative z-20">
-        
-        {/* 大会名（枠の外側） - ブラックアウトラインでくっきりと */}
-        <div 
-          className="text-white text-5xl md:text-7xl font-black tracking-[0.2em] mb-8 cursor-pointer pointer-events-auto uppercase drop-shadow-xl"
-          style={{ textShadow: "2px 2px 0 #000, -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 0px 2px 0 #000, 0px -2px 0 #000, 2px 0px 0 #000, -2px 0px 0 #000, 0px 6px 12px rgba(0,0,0,0.5)" }}
-          onClick={() => setShowSettingsModal(true)}
-        >
-           {String(tournamentName || "")}
-        </div>
-
-        {/* Main Board Container (Pop & Clean Style) */}
-        <div className="relative w-full aspect-[16/9] rounded-2xl border-[3px] border-white/60 shadow-[0_20px_50px_rgba(0,0,0,0.8)] flex flex-col overflow-hidden backdrop-blur-sm">
+    <>
+      <PinchZoomWrapper>
+        <div className="font-sans text-white w-[900px] md:w-[1000px] max-w-[95vw] flex flex-col items-center relative z-20">
           
-          {/* 背景グループ (ツートン＆斜めラインを完全に背後レイヤーに固定・透過度アップ) */}
-          <div className="absolute inset-0 z-0 pointer-events-none">
-             <div className="absolute inset-0 flex flex-col">
+          {/* 大会名（枠の外側） - ブラックアウトラインでくっきりと */}
+          <div 
+            className="text-white text-5xl md:text-7xl font-black tracking-[0.2em] mb-8 cursor-pointer pointer-events-auto uppercase drop-shadow-xl"
+            style={{ textShadow: "2px 2px 0 #000, -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 0px 2px 0 #000, 0px -2px 0 #000, 2px 0px 0 #000, -2px 0px 0 #000, 0px 6px 12px rgba(0,0,0,0.5)" }}
+            onClick={() => setShowSettingsModal(true)}
+          >
+             {String(tournamentName || "")}
+          </div>
+
+          {/* Main Board Container (Pop & Clean Style) */}
+          <div className="relative w-full aspect-[16/9] rounded-2xl border-[3px] border-white/60 shadow-[0_20px_50px_rgba(0,0,0,0.8)] flex flex-col overflow-hidden backdrop-blur-sm">
+            
+            {/* 背景グループ */}
+            <div className="absolute inset-0 z-0 pointer-events-none">
                 <div className="flex-[3] bg-white/85"></div>
                 <div className="flex-[1] bg-pink-50/85"></div>
-             </div>
-             {/* ストライプも少し弱めて透け感を重視 */}
-             <div className="absolute inset-0 opacity-40" style={{ backgroundImage: "repeating-linear-gradient(-45deg, transparent, transparent 15px, rgba(255,255,255,0.4) 15px, rgba(255,255,255,0.4) 30px)" }}></div>
-          </div>
-          
-          {/* コンテンツの配置レイヤー (isolationで背景との干渉を遮断) */}
-          <div className="relative z-10 w-full h-full flex flex-col pointer-events-none" style={{ isolation: 'isolate' }}>
+            </div>
+            {/* ストライプ */}
+            <div className="absolute inset-0 opacity-40" style={{ backgroundImage: "repeating-linear-gradient(-45deg, transparent, transparent 15px, rgba(255,255,255,0.4) 15px, rgba(255,255,255,0.4) 30px)" }}></div>
             
-            {/* 上段：チーム名 (白背景部分) */}
-            <div className="flex-1 flex flex-col justify-end pb-8 pointer-events-auto">
-              <div className="w-full flex items-end justify-center gap-4 md:gap-12 px-12">
-                
-                {/* HOME */}
-                <div className="flex-1 flex items-end justify-end gap-2 md:gap-4">
-                  <div className="w-6 h-8 md:w-10 md:h-[50px] rounded-sm mb-1 shadow-sm transition-colors" style={{ backgroundColor: teamColors?.home || "#0ea5e9" }}></div>
-                  <div 
-                    className="text-center font-black text-6xl md:text-[100px] text-[#0f172a] uppercase leading-none drop-shadow-md" 
-                    style={{ textShadow: "3px 3px 0 #fff, -3px -3px 0 #fff, 3px -3px 0 #fff, -3px 3px 0 #fff, 0 6px 12px rgba(0,0,0,0.2)", letterSpacing: "-0.02em" }}
-                  >
-                     {String(teamNames?.home || "")}
-                  </div>
-                  <div className="w-6 h-8 md:w-10 md:h-[50px] rounded-sm mb-1 shadow-sm transition-colors" style={{ backgroundColor: teamColors?.home || "#0ea5e9" }}></div>
-                </div>
-                
-                {/* VS or - */}
-                <div className="text-5xl w-8 md:w-12 opacity-0">-</div>
-                
-                {/* AWAY */}
-                <div className="flex-1 flex items-end justify-start gap-2 md:gap-4">
-                  <div className="w-6 h-8 md:w-10 md:h-[50px] rounded-sm mb-1 shadow-sm transition-colors" style={{ backgroundColor: teamColors?.away || "#ec4899" }}></div>
-                  <div 
-                    className="text-center font-black text-6xl md:text-[100px] text-[#0f172a] uppercase leading-none drop-shadow-md" 
-                    style={{ textShadow: "3px 3px 0 #fff, -3px -3px 0 #fff, 3px -3px 0 #fff, -3px 3px 0 #fff, 0 6px 12px rgba(0,0,0,0.2)", letterSpacing: "-0.02em" }}
-                  >
-                     {String(teamNames?.away || "")}
-                  </div>
-                  <div className="w-6 h-8 md:w-10 md:h-[50px] rounded-sm mb-1 shadow-sm transition-colors" style={{ backgroundColor: teamColors?.away || "#ec4899" }}></div>
-                </div>
-
-              </div>
-            </div>
-
-            {/* 中段：水色のお洒落ベース (得点エリア) */}
-            <div className="h-[40%] w-full bg-gradient-to-r from-cyan-400/90 to-cyan-500/90 shadow-md flex items-center justify-center gap-10 md:gap-32 px-12 pointer-events-auto relative backdrop-blur-sm z-20">
-              <div className="flex-1 flex justify-center">
-                <div onClick={() => handleScoreChange('home', 1)} className="text-[9rem] md:text-[14rem] leading-none font-mono font-black text-white cursor-pointer hover:text-cyan-100 transition-colors drop-shadow-md select-none tabular-nums">
-                   {Number(score?.home || 0)}
-                </div>
-              </div>
+            {/* コンテンツの配置レイヤー (isolationで背景との干渉を遮断) */}
+            <div className="relative z-10 w-full h-full flex flex-col pointer-events-none" style={{ isolation: 'isolate' }}>
               
-              {/* PK戦の時はハイフンを消して「PK戦」と中央に表示 */}
-              {period === 'PK' ? (
-                <div className="text-5xl md:text-7xl font-black tracking-widest text-white drop-shadow-md z-10 whitespace-nowrap">PK戦</div>
-              ) : (
-                <div className="text-6xl md:text-8xl font-black text-white/50">-</div>
-              )}
-              
-              <div className="flex-1 flex justify-center">
-                <div onClick={() => handleScoreChange('away', 1)} className="text-[9rem] md:text-[14rem] leading-none font-mono font-black text-white cursor-pointer hover:text-cyan-100 transition-colors drop-shadow-md select-none tabular-nums">
-                   {Number(score?.away || 0)}
-                </div>
-              </div>
-
-              {/* PK履歴 */}
-              {period === 'PK' && (
-                <div className="absolute -bottom-10 translate-y-1/2 w-full flex justify-between px-12 md:px-24 z-30 pointer-events-auto scale-90 md:scale-100">
-                  <PkTracker team="home" history={Array.isArray(pkState?.home) ? pkState.home : []} onAdd={(res) => handlePkAction('home', res)} />
-                  <PkTracker team="away" history={Array.isArray(pkState?.away) ? pkState.away : []} onAdd={(res) => handlePkAction('away', res)} />
-                </div>
-              )}
-            </div>
-
-            {/* 下段：タイム表示 (縦書き＆センター配置) */}
-            <div className="flex-1 flex items-center justify-center pointer-events-auto relative w-full h-full">
-              
-              <div className={`absolute inset-0 flex items-center justify-center cursor-pointer transition-colors duration-200 ${isOverTime && period !== 'End' && period !== 'PK' ? 'text-pink-600 drop-shadow-[0_2px_10px_rgba(219,39,119,0.3)]' : 'text-[#0f172a] drop-shadow-sm'}`} onClick={period !== 'End' && period !== 'PK' ? toggleTimer : undefined}>
-                 {/* PK戦の時は下段を空にする */}
-                 {period === 'PK' ? null : (
-                    <div className="relative flex items-center justify-center">
-                       {/* 縦書きの「前半」など (グレーのマット付き、タイムの左隣に固定) */}
-                       <div className="absolute right-[100%] mr-4 md:mr-6 bg-slate-800/10 px-1.5 py-3 md:py-4 rounded-lg flex items-center justify-center shadow-inner">
-                          <span 
-                             className="text-xl md:text-2xl font-black tracking-widest opacity-80"
-                             style={{ writingMode: 'vertical-rl', textOrientation: 'upright', letterSpacing: '0.1em' }}
-                          >
-                             {String(getPeriodKanji())}
-                          </span>
-                       </div>
-                       
-                       {/* センター配置のタイム (常にど真ん中) */}
-                       {period !== 'End' && <span className="text-[4.5rem] md:text-[6.5rem] font-mono font-black tabular-nums tracking-tighter leading-none z-10">{String(formattedTime)}</span>}
-
-                       {/* ロスタイム表示 (タイムの右隣に固定) */}
-                       {additionalTime > 0 && period !== 'End' && period !== 'PK' && (
-                         <div className="absolute left-[100%] ml-4 md:ml-6 bg-pink-600 border border-white text-white font-black text-3xl md:text-4xl px-3 py-1 md:px-4 rounded shadow-md z-20">
-                           +{Number(additionalTime)}
-                         </div>
-                       )}
+              {/* 上段：チーム名 (白背景部分) */}
+              <div className="flex-1 flex flex-col justify-end pb-8 pointer-events-auto">
+                <div className="w-full flex items-end justify-center gap-4 md:gap-12 px-12">
+                  
+                  {/* HOME */}
+                  <div className="flex-1 flex items-end justify-end gap-2 md:gap-4">
+                    <div className="w-6 h-8 md:w-10 md:h-[50px] rounded-sm mb-1 shadow-sm transition-colors" style={{ backgroundColor: teamColors?.home || "#0ea5e9" }}></div>
+                    <div 
+                      className="text-center font-black text-6xl md:text-[100px] text-[#0f172a] uppercase leading-none drop-shadow-md" 
+                      style={{ textShadow: "3px 3px 0 #fff, -3px -3px 0 #fff, 3px -3px 0 #fff, -3px 3px 0 #fff, 0 6px 12px rgba(0,0,0,0.2)", letterSpacing: "-0.02em" }}
+                    >
+                       {String(teamNames?.home || "")}
                     </div>
-                 )}
-              </div>
-              
-              {/* 試合終了時の前後半別スコア表示 */}
-              {period === 'End' && (
-                <div className="absolute top-0 -translate-y-1/2 bg-white border-2 border-cyan-400 px-8 py-2 rounded-full flex gap-10 text-[#0f172a] font-bold tracking-widest shadow-md z-30 uppercase">
-                   <div>前半: {Number(firstHalfScore?.home || 0)} - {Number(firstHalfScore?.away || 0)}</div>
-                   {(() => {
-                      const homeArr = Array.isArray(pkState?.home) ? pkState.home : [];
-                      const awayArr = Array.isArray(pkState?.away) ? pkState.away : [];
-                      const homePkScore = homeArr.filter(r => r === 'O').length || 0;
-                      const awayPkScore = awayArr.filter(r => r === 'O').length || 0;
-                      const homeSecondHalf = Number(score?.home || 0) - Number(firstHalfScore?.home || 0);
-                      const awaySecondHalf = Number(score?.away || 0) - Number(firstHalfScore?.away || 0);
-                      
-                      return (
-                        <>
-                          <div>後半: {homeSecondHalf} - {awaySecondHalf}</div>
-                          {(homeArr.length > 0 || awayArr.length > 0) && (
-                            <div className="text-pink-600">PK: {homePkScore} - {awayPkScore}</div>
-                          )}
-                        </>
-                      );
-                   })()}
+                    <div className="w-6 h-8 md:w-10 md:h-[50px] rounded-sm mb-1 shadow-sm transition-colors" style={{ backgroundColor: teamColors?.home || "#0ea5e9" }}></div>
+                  </div>
+                  
+                  {/* VS or - */}
+                  <div className="text-5xl w-8 md:w-12 opacity-0">-</div>
+                  
+                  {/* AWAY */}
+                  <div className="flex-1 flex items-end justify-start gap-2 md:gap-4">
+                    <div className="w-6 h-8 md:w-10 md:h-[50px] rounded-sm mb-1 shadow-sm transition-colors" style={{ backgroundColor: teamColors?.away || "#ec4899" }}></div>
+                    <div 
+                      className="text-center font-black text-6xl md:text-[100px] text-[#0f172a] uppercase leading-none drop-shadow-md" 
+                      style={{ textShadow: "3px 3px 0 #fff, -3px -3px 0 #fff, 3px -3px 0 #fff, -3px 3px 0 #fff, 0 6px 12px rgba(0,0,0,0.2)", letterSpacing: "-0.02em" }}
+                    >
+                       {String(teamNames?.away || "")}
+                    </div>
+                    <div className="w-6 h-8 md:w-10 md:h-[50px] rounded-sm mb-1 shadow-sm transition-colors" style={{ backgroundColor: teamColors?.away || "#ec4899" }}></div>
+                  </div>
+
                 </div>
+              </div>
+
+              {/* 中段：水色のお洒落ベース (得点エリア) */}
+              <div className="h-[40%] w-full bg-gradient-to-r from-cyan-400/90 to-cyan-500/90 shadow-md flex items-center justify-center gap-10 md:gap-32 px-12 pointer-events-auto relative backdrop-blur-sm z-20">
+                <div className="flex-1 flex justify-center">
+                  <div onClick={() => handleScoreChange('home', 1)} className="text-[9rem] md:text-[14rem] leading-none font-mono font-black text-white cursor-pointer hover:text-cyan-100 transition-colors drop-shadow-md select-none tabular-nums">
+                     {Number(score?.home || 0)}
+                  </div>
+                </div>
+                
+                {/* PK戦の時はハイフンを消して「PK戦」と中央に表示 */}
+                {period === 'PK' ? (
+                  <div className="text-5xl md:text-7xl font-black tracking-widest text-white drop-shadow-md z-10 whitespace-nowrap">PK戦</div>
+                ) : (
+                  <div className="text-6xl md:text-8xl font-black text-white/50">-</div>
+                )}
+                
+                <div className="flex-1 flex justify-center">
+                  <div onClick={() => handleScoreChange('away', 1)} className="text-[9rem] md:text-[14rem] leading-none font-mono font-black text-white cursor-pointer hover:text-cyan-100 transition-colors drop-shadow-md select-none tabular-nums">
+                     {Number(score?.away || 0)}
+                  </div>
+                </div>
+
+                {/* PK履歴 */}
+                {period === 'PK' && (
+                  <div className="absolute -bottom-10 translate-y-1/2 w-full flex justify-between px-12 md:px-24 z-30 pointer-events-auto scale-90 md:scale-100">
+                    <PkTracker team="home" history={Array.isArray(pkState?.home) ? pkState.home : []} onAdd={(res) => handlePkAction('home', res)} />
+                    <PkTracker team="away" history={Array.isArray(pkState?.away) ? pkState.away : []} onAdd={(res) => handlePkAction('away', res)} />
+                  </div>
+                )}
+              </div>
+
+              {/* 下段：タイム表示 (縦書き＆センター配置) */}
+              <div className="flex-1 flex items-center justify-center pointer-events-auto relative w-full h-full">
+                
+                <div className={`absolute inset-0 flex items-center justify-center cursor-pointer transition-colors duration-200 ${isOverTime && period !== 'End' && period !== 'PK' ? 'text-pink-600 drop-shadow-[0_2px_10px_rgba(219,39,119,0.3)]' : 'text-[#0f172a] drop-shadow-sm'}`} onClick={period !== 'End' && period !== 'PK' ? toggleTimer : undefined}>
+                   {/* PK戦の時は下段を空にする */}
+                   {period === 'PK' ? null : (
+                      <div className="relative flex items-center justify-center">
+                         {/* 縦書きの「前半」など (グレーのマット付き、タイムの左隣に固定) */}
+                         <div className="absolute right-[100%] mr-4 md:mr-6 bg-slate-800/10 px-1.5 py-3 md:py-4 rounded-lg flex items-center justify-center shadow-inner">
+                            <span 
+                               className="text-xl md:text-2xl font-black tracking-widest opacity-80"
+                               style={{ writingMode: 'vertical-rl', textOrientation: 'upright', letterSpacing: '0.1em' }}
+                            >
+                               {String(getPeriodKanji())}
+                            </span>
+                         </div>
+                         
+                         {/* センター配置のタイム */}
+                         {period !== 'End' && <span className="text-[4.5rem] md:text-[6.5rem] font-mono font-black tabular-nums tracking-tighter leading-none z-10">{String(formattedTime)}</span>}
+
+                         {/* ロスタイム表示 (タイムの右隣に固定) */}
+                         {additionalTime > 0 && period !== 'End' && period !== 'PK' && (
+                           <div className="absolute left-[100%] ml-4 md:ml-6 bg-pink-600 border border-white text-white font-black text-3xl md:text-4xl px-3 py-1 md:px-4 rounded shadow-md z-20">
+                             +{Number(additionalTime)}
+                           </div>
+                         )}
+                      </div>
+                   )}
+                </div>
+                
+                {/* 試合終了時の前後半別スコア表示 */}
+                {period === 'End' && (
+                  <div className="absolute top-0 -translate-y-1/2 bg-white border-2 border-cyan-400 px-8 py-2 rounded-full flex gap-10 text-[#0f172a] font-bold tracking-widest shadow-md z-30 uppercase">
+                     <div>前半: {Number(firstHalfScore?.home || 0)} - {Number(firstHalfScore?.away || 0)}</div>
+                     {(() => {
+                        const homeArr = Array.isArray(pkState?.home) ? pkState.home : [];
+                        const awayArr = Array.isArray(pkState?.away) ? pkState.away : [];
+                        const homePkScore = homeArr.filter(r => r === 'O').length || 0;
+                        const awayPkScore = awayArr.filter(r => r === 'O').length || 0;
+                        const homeSecondHalf = Number(score?.home || 0) - Number(firstHalfScore?.home || 0);
+                        const awaySecondHalf = Number(score?.away || 0) - Number(firstHalfScore?.away || 0);
+                        
+                        return (
+                          <>
+                            <div>後半: {homeSecondHalf} - {awaySecondHalf}</div>
+                            {(homeArr.length > 0 || awayArr.length > 0) && (
+                              <div className="text-pink-600">PK: {homePkScore} - {awayPkScore}</div>
+                            )}
+                          </>
+                        );
+                     })()}
+                  </div>
+                )}
+              </div>
+
+            </div> {/* /コンテンツの配置レイヤー 閉じタグ */}
+
+            {/* Layer 3: Controls (ステルス化された操作ボタン) */}
+            
+            {/* 右上：⚙️設定アイコン */}
+            <button 
+              onClick={() => setShowSettingsModal(true)} 
+              className="absolute top-6 right-6 w-12 h-12 bg-slate-800/40 hover:bg-slate-800/70 text-white/70 hover:text-white rounded-full border border-white/20 flex items-center justify-center text-xl transition-colors shadow-md z-30 backdrop-blur-sm"
+            >
+              ⚙️
+            </button>
+
+            {/* 左下：ロスタイム設定＆終了ボタン */}
+            <div className="absolute bottom-6 left-6 flex gap-3 z-30">
+              {period !== 'PK' && (
+                <button onClick={() => { saveHistory(); setAdditionalTime(prev => prev + 1); }} className="px-5 py-3 bg-slate-800/40 hover:bg-slate-800/70 border border-white/20 text-white/80 hover:text-white text-sm font-black tracking-widest rounded shadow-md transition-colors uppercase backdrop-blur-sm">
+                   ロスタイム
+                </button>
               )}
+              {period === '1st' && <ConfirmButton label="前半終了" onConfirm={() => handlePeriodEnd('1stEnd')} positionClass="relative" />}
+              {period === '2nd' && <ConfirmButton label="後半終了" onConfirm={() => handlePeriodEnd('2ndEnd')} positionClass="relative" />}
+              {period === '1stEX' && <ConfirmButton label="前半終了" onConfirm={() => handlePeriodEnd('1stExEnd')} positionClass="relative" />}
+              {period === '2ndEX' && <ConfirmButton label="後半終了" onConfirm={() => handlePeriodEnd('2ndExEnd')} positionClass="relative" />}
             </div>
 
-          </div>
+            {/* 右下：UNDO / REDO */}
+            <div className="absolute bottom-6 right-6 flex gap-2 z-30">
+              <button onClick={handleUndo} disabled={history.length === 0} title="UNDO" className={`w-12 h-12 flex items-center justify-center bg-slate-800/40 hover:bg-slate-800/70 border border-white/20 text-white/80 hover:text-white rounded text-xl font-black transition-colors shadow-md backdrop-blur-sm ${history.length===0?'opacity-30':''}`}>↶</button>
+              <button onClick={handleRedo} disabled={future.length === 0} title="REDO" className={`w-12 h-12 flex items-center justify-center bg-slate-800/40 hover:bg-slate-800/70 border border-white/20 text-white/80 hover:text-white rounded text-xl font-black transition-colors shadow-md backdrop-blur-sm ${future.length===0?'opacity-30':''}`}>↷</button>
+            </div>
 
-          {/* Layer 3: Controls (ステルス化された操作ボタン) */}
-          
-          {/* 右上：⚙️設定アイコン */}
-          <button 
-            onClick={() => setShowSettingsModal(true)} 
-            className="absolute top-6 right-6 w-12 h-12 bg-slate-800/40 hover:bg-slate-800/70 text-white/70 hover:text-white rounded-full border border-white/20 flex items-center justify-center text-xl transition-colors shadow-md z-30 backdrop-blur-sm"
-          >
-            ⚙️
-          </button>
-
-          {/* 左下：ロスタイム設定＆終了ボタン */}
-          <div className="absolute bottom-6 left-6 flex gap-3 z-30">
-            {period !== 'PK' && (
-              <button onClick={() => { saveHistory(); setAdditionalTime(prev => prev + 1); }} className="px-5 py-3 bg-slate-800/40 hover:bg-slate-800/70 border border-white/20 text-white/80 hover:text-white text-sm font-black tracking-widest rounded shadow-md transition-colors uppercase backdrop-blur-sm">
-                 ロスタイム
-              </button>
-            )}
-            {period === '1st' && <ConfirmButton label="前半終了" onConfirm={() => handlePeriodEnd('1stEnd')} positionClass="relative" />}
-            {period === '2nd' && <ConfirmButton label="後半終了" onConfirm={() => handlePeriodEnd('2ndEnd')} positionClass="relative" />}
-            {period === '1stEX' && <ConfirmButton label="前半終了" onConfirm={() => handlePeriodEnd('1stExEnd')} positionClass="relative" />}
-            {period === '2ndEX' && <ConfirmButton label="後半終了" onConfirm={() => handlePeriodEnd('2ndExEnd')} positionClass="relative" />}
-          </div>
-
-          {/* 右下：UNDO / REDO */}
-          <div className="absolute bottom-6 right-6 flex gap-2 z-30">
-            <button onClick={handleUndo} disabled={history.length === 0} title="UNDO" className={`w-12 h-12 flex items-center justify-center bg-slate-800/40 hover:bg-slate-800/70 border border-white/20 text-white/80 hover:text-white rounded text-xl font-black transition-colors shadow-md backdrop-blur-sm ${history.length===0?'opacity-30':''}`}>↶</button>
-            <button onClick={handleRedo} disabled={future.length === 0} title="REDO" className={`w-12 h-12 flex items-center justify-center bg-slate-800/40 hover:bg-slate-800/70 border border-white/20 text-white/80 hover:text-white rounded text-xl font-black transition-colors shadow-md backdrop-blur-sm ${future.length===0?'opacity-30':''}`}>↷</button>
-          </div>
-
-        </div>
-      </div>
+          </div> {/* /Main Board Container 閉じタグ */}
+        </div> 
+      </PinchZoomWrapper>
 
       {/* モーダル群 */}
       {showSettingsModal && (
@@ -694,7 +758,7 @@ function Scoreboard({ user, courtId }) {
         />
       )}
 
-    </div>
+    </>
   );
 }
 
@@ -910,7 +974,7 @@ function AdminDashboard({ user, onBack }) {
 
   const safeEmail = user?.email || "";
   const isSuperAdmin = safeEmail === "abctv1@abctv.com";
-  const groupPrefix = "cerezo"; // ←ここも cerezo に変更
+  const groupPrefix = "cerezo"; 
 
   useEffect(() => {
     try {
