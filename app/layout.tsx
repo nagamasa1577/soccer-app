@@ -6,8 +6,8 @@ export const metadata = { title: 'Soccer Scoreboard' };
 export const viewport = {
   width: 'device-width',
   initialScale: 1,
-  maximumScale: 10,
-  userScalable: true,
+  maximumScale: 1,
+  userScalable: false,
 };
 
 export default function RootLayout({ children }) {
