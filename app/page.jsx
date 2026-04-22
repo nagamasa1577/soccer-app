@@ -653,17 +653,17 @@ function Scoreboard({ user, courtId }) {
                    {period === 'PK' ? null : (
                       <div className="relative flex items-center justify-center">
                          {/* 縦書きの「前半」など (グレーのマット付き、タイムの左隣に固定) */}
-                         <div className="absolute right-[100%] mr-4 md:mr-6 bg-slate-800/10 px-1.5 py-3 md:py-4 rounded-lg flex items-center justify-center shadow-inner">
+                         <div className="absolute right-[100%] mr-2 md:mr-6 bg-slate-800/10 px-1 py-2 md:px-1.5 md:py-4 rounded-lg flex items-center justify-center shadow-inner">
                             <span 
-                               className="text-xl md:text-2xl font-black tracking-widest opacity-80"
-                               style={{ writingMode: 'vertical-rl', textOrientation: 'upright', letterSpacing: '0.1em' }}
+                               className="text-lg md:text-2xl font-black tracking-widest opacity-80"
+                               style={{ writingMode: 'vertical-rl', WebkitWritingMode: 'vertical-rl', textOrientation: 'upright', letterSpacing: '0.1em' }}
                             >
                                {String(getPeriodKanji())}
                             </span>
                          </div>
                          
-                         {/* センター配置のタイム */}
-                         {period !== 'End' && <span className="text-[4.5rem] md:text-[6.5rem] font-mono font-black tabular-nums tracking-tighter leading-none z-10">{String(formattedTime)}</span>}
+                         {/* センター配置のタイム (スマホ時は少しだけ小さくしてスペース確保) */}
+                         {period !== 'End' && <span className="text-[4rem] md:text-[6.5rem] font-mono font-black tabular-nums tracking-tighter leading-none z-10">{String(formattedTime)}</span>}
 
                          {/* ロスタイム表示 (タイムの右隣に固定) */}
                          {additionalTime > 0 && period !== 'End' && period !== 'PK' && (
@@ -712,10 +712,10 @@ function Scoreboard({ user, courtId }) {
               ⚙️
             </button>
 
-            {/* 左下：ロスタイム設定＆終了ボタン */}
-            <div className="absolute bottom-6 left-6 flex gap-3 z-30">
+            {/* 左下：ロスタイム設定＆終了ボタン (スマホ時はマージンとサイズを縮小) */}
+            <div className="absolute bottom-4 left-4 md:bottom-6 md:left-6 flex gap-2 md:gap-3 z-30">
               {period !== 'PK' && (
-                <button onClick={() => { saveHistory(); setAdditionalTime(prev => prev + 1); }} className="px-5 py-3 bg-slate-800/40 hover:bg-slate-800/70 border border-white/20 text-white/80 hover:text-white text-sm font-black tracking-widest rounded shadow-md transition-colors uppercase backdrop-blur-sm">
+                <button onClick={() => { saveHistory(); setAdditionalTime(prev => prev + 1); }} className="px-3 py-2 md:px-5 md:py-3 bg-slate-800/40 hover:bg-slate-800/70 border border-white/20 text-white/80 hover:text-white text-xs md:text-sm font-black tracking-widest rounded shadow-md transition-colors uppercase backdrop-blur-sm">
                    ロスタイム
                 </button>
               )}
@@ -953,13 +953,12 @@ function ConfirmButton({ label, onConfirm, positionClass }) {
   
   return (
     <button onClick={handleClick} className={`z-50 group ${positionClass}`}>
-      <span className={`block px-5 py-3 text-sm font-black tracking-widest rounded border transition-colors duration-200 uppercase shadow-md backdrop-blur-sm ${status === "CONFIRMING" ? 'bg-red-600/90 border-red-500 text-white' : 'bg-slate-800/40 hover:bg-slate-800/70 border-white/20 text-white/80 hover:text-white'}`}>
+      <span className={`block px-3 py-2 md:px-5 md:py-3 text-xs md:text-sm font-black tracking-widest rounded border transition-colors duration-200 uppercase shadow-md backdrop-blur-sm ${status === "CONFIRMING" ? 'bg-red-600/90 border-red-500 text-white' : 'bg-slate-800/40 hover:bg-slate-800/70 border-white/20 text-white/80 hover:text-white'}`}>
         {status === "CONFIRMING" ? `${label}？` : label}
       </span>
     </button>
   );
 }
-
 
 // ==========================================
 // ④ 管理者ダッシュボード
@@ -1344,7 +1343,7 @@ function ObsScoreboard({ courtId }) {
                         <div className="absolute right-[100%] mr-5 bg-slate-800/10 px-2 py-4 rounded-lg flex items-center justify-center shadow-inner">
                            <span 
                               className="text-2xl font-black tracking-widest opacity-80"
-                              style={{ writingMode: 'vertical-rl', textOrientation: 'upright', letterSpacing: '0.1em' }}
+                              style={{ writingMode: 'vertical-rl', WebkitWritingMode: 'vertical-rl', textOrientation: 'upright', letterSpacing: '0.1em' }}
                            >
                               {data.period === '1st' ? '前半' : 
                                data.period === '2nd' ? '後半' : 
