@@ -544,9 +544,9 @@ function Scoreboard({ user, courtId }) {
 
   if (!isLoaded) return <div className="flex items-center justify-center min-h-screen bg-black text-pink-500 font-black tracking-widest">SYNCING...</div>;
 
-  // PK戦の正しい枠数計算を追加
-  const homeKicks = Array.isArray(pkState?.home) ? pkState.home.length : 0;
-  const awayKicks = Array.isArray(pkState?.away) ? pkState.away.length : 0;
+  // ▼ 修正：より安全でシンプルな枠数計算に変更
+  const homeKicks = pkState?.home?.length || 0;
+  const awayKicks = pkState?.away?.length || 0;
   const maxKicks = Math.max(homeKicks, awayKicks);
   const pkSlotsCount = Math.max(5, homeKicks === awayKicks ? maxKicks + 1 : maxKicks);
 
@@ -1150,6 +1150,12 @@ function MiniBoard({ courtId, onRemove, user }) {
   const currentDuration = (data?.period === '1stEX' || data?.period === '2ndEX') ? data?.extraTimeDuration : data?.halfTimeDuration;
   const { formattedTime, isOverTime } = useTimer(data?.timer, currentDuration);
 
+  // ▼ 修正：安全な枠数計算
+  const homeKicks = data?.pkState?.home?.length || 0;
+  const awayKicks = data?.pkState?.away?.length || 0;
+  const maxKicks = Math.max(homeKicks, awayKicks);
+  const pkSlotsCount = Math.max(5, homeKicks === awayKicks ? maxKicks + 1 : maxKicks);
+
   if (!data) return <div className="w-[448px] h-[240px] bg-white border border-slate-200 rounded-lg flex items-center justify-center text-slate-400 font-bold tracking-widest relative">LOADING...</div>;
 
   return (
@@ -1169,7 +1175,7 @@ function MiniBoard({ courtId, onRemove, user }) {
         className="absolute top-3 right-3 w-8 h-8 bg-white/90 hover:bg-red-600 text-slate-400 hover:text-white rounded flex items-center justify-center font-black z-[200] opacity-0 group-hover:opacity-100 transition-colors border border-slate-200 hover:border-red-500 shadow-md"
       >✕</button>
 
-      {/* コンテンツ層 (干渉防止) */}
+      {/* コンテンツ層 */}
       <div className="relative z-10 w-full h-full flex flex-col" style={{ isolation: 'isolate' }}>
          
          {/* 大会名 & チーム名 */}
@@ -1198,7 +1204,6 @@ function MiniBoard({ courtId, onRemove, user }) {
                <div className="text-[5rem] font-mono font-black text-white drop-shadow-md tabular-nums leading-none">{Number(data.score?.home || 0)}</div>
             </div>
             
-            {/* PK戦の時はハイフンを消して「PK戦」と表示 (MiniBoard側) */}
             {data.period === 'PK' ? (
                <div className="text-3xl font-black tracking-widest text-white drop-shadow-md z-10 whitespace-nowrap">PK戦</div>
             ) : (
@@ -1209,10 +1214,9 @@ function MiniBoard({ courtId, onRemove, user }) {
                <div className="text-[5rem] font-mono font-black text-white drop-shadow-md tabular-nums leading-none">{Number(data.score?.away || 0)}</div>
             </div>
 
-            {/* PK Status Overlay for MiniBoard (縮小版) */}
+            {/* PK Status Overlay for MiniBoard (幅160px固定・折り返し・エラー防止付き) */}
             {(data.period === 'PK' || (data.period === 'End' && (homeKicks > 0 || awayKicks > 0))) && (
                <div className="absolute -bottom-5 translate-y-1/2 w-full flex justify-between px-8 z-30 pointer-events-auto">
-                 {/* ▼ 修正：w-[160px] で幅を固定し、確実に5個で2段目に折り返させる */}
                  <div className="flex gap-1 bg-white/90 px-2 py-1.5 rounded-xl shadow-md border border-slate-200 backdrop-blur-sm w-[160px] flex-wrap justify-center">
                     {Array.from({ length: pkSlotsCount }).map((_, i) => {
                        const res = data.pkState?.home?.[i];
@@ -1223,7 +1227,6 @@ function MiniBoard({ courtId, onRemove, user }) {
                        return <div key={i} className={`w-6 h-6 rounded-full border-[2px] flex justify-center items-center font-black text-[10px] shrink-0 ${bgClass}`}>{icon}</div>
                     })}
                  </div>
-                 {/* ▼ 修正：w-[160px] で幅を固定 */}
                  <div className="flex gap-1 bg-white/90 px-2 py-1.5 rounded-xl shadow-md border border-slate-200 backdrop-blur-sm w-[160px] flex-wrap justify-center">
                     {Array.from({ length: pkSlotsCount }).map((_, i) => {
                        const res = data.pkState?.away?.[i];
@@ -1241,7 +1244,6 @@ function MiniBoard({ courtId, onRemove, user }) {
          {/* 桃色ベースのタイム */}
          <div className="flex-1 w-full flex justify-center items-center relative">
             <div className={`flex items-baseline gap-3 ${isOverTime && data.period !== 'End' && data.period !== 'PK' ? 'text-pink-600' : 'text-[#0f172a]'}`}>
-               {/* 試合終了時はドカンと横書きで表示 (MiniBoard側) */}
                {data.period === 'PK' ? null : data.period === 'End' ? (
                   <span className="text-3xl font-black tracking-widest z-10">試合終了</span>
                ) : (
@@ -1258,7 +1260,7 @@ function MiniBoard({ courtId, onRemove, user }) {
             </div>
             {data.additionalTime > 0 && data.period !== 'PK' && data.period !== 'End' && <span className="absolute right-4 bg-pink-600 border border-white text-white px-2 py-0.5 rounded shadow-sm font-black text-sm">+{Number(data.additionalTime)}</span>}
          
-            {/* ▼ 修正：PK履歴が2段になっても重ならないよう、配置を top-0 から bottom-2 へ移動 */}
+            {/* 試合終了時スコアバッジ (bottom-2 に配置して絶対に重ならないようにする) */}
             {data.period === 'End' && (
               <div className="absolute bottom-2 bg-white border border-cyan-400 px-3 py-1 rounded-full flex gap-3 text-[#0f172a] font-bold tracking-widest shadow-md z-30 uppercase text-[9px]">
                  <div>前半: {Number(data.firstHalfScore?.home || 0)} - {Number(data.firstHalfScore?.away || 0)}</div>
@@ -1284,7 +1286,7 @@ function MiniBoard({ courtId, onRemove, user }) {
          </div>
       </div>
       
-      {/* 修正：コートIDを左上に目立つバッジとして表示 */}
+      {/* コートIDバッジ */}
       <div className="absolute top-0 left-0 bg-pink-600 text-white text-[10px] md:text-xs font-black px-3 py-1 rounded-br-lg shadow-md uppercase z-30 tracking-widest border-r border-b border-pink-700">
          ID: {String(courtId)}
       </div>
@@ -1322,9 +1324,9 @@ function ObsScoreboard({ courtId }) {
   const currentDuration = (data?.period === '1stEX' || data?.period === '2ndEX') ? data?.extraTimeDuration : data?.halfTimeDuration;
   const { formattedTime, isOverTime } = useTimer(data?.timer, currentDuration);
 
-  // ▼ 追加：枠数計算
-  const homeKicks = Array.isArray(data?.pkState?.home) ? data.pkState.home.length : 0;
-  const awayKicks = Array.isArray(data?.pkState?.away) ? data.pkState.away.length : 0;
+  // ▼ 修正：安全な枠数計算
+  const homeKicks = data?.pkState?.home?.length || 0;
+  const awayKicks = data?.pkState?.away?.length || 0;
   const maxKicks = Math.max(homeKicks, awayKicks);
   const pkSlotsCount = Math.max(5, homeKicks === awayKicks ? maxKicks + 1 : maxKicks);
 
