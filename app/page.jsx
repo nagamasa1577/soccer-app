@@ -1181,29 +1181,92 @@ function MiniBoard({ courtId, onRemove, user }) {
          </div>
 
          {/* 水色帯の得点 */}
-         <div className="h-[40%] w-full bg-gradient-to-r from-cyan-400/90 to-cyan-500/90 flex items-center justify-center gap-4 px-4 shadow-inner relative backdrop-blur-sm">
+         <div className="h-[40%] w-full bg-gradient-to-r from-cyan-400/90 to-cyan-500/90 flex items-center justify-center gap-4 px-4 shadow-inner relative backdrop-blur-sm z-20">
             <div className="flex-1 flex justify-center">
                <div className="text-[5rem] font-mono font-black text-white drop-shadow-md tabular-nums leading-none">{Number(data.score?.home || 0)}</div>
             </div>
-            <div className="text-4xl font-black text-white/50">-</div>
+            
+            {/* PK戦の時はハイフンを消して「PK戦」と表示 (MiniBoard側) */}
+            {data.period === 'PK' ? (
+               <div className="text-3xl font-black tracking-widest text-white drop-shadow-md z-10 whitespace-nowrap">PK戦</div>
+            ) : (
+               <div className="text-4xl font-black text-white/50">-</div>
+            )}
+
             <div className="flex-1 flex justify-center">
                <div className="text-[5rem] font-mono font-black text-white drop-shadow-md tabular-nums leading-none">{Number(data.score?.away || 0)}</div>
             </div>
+
+            {/* PK Status Overlay for MiniBoard (縮小版) */}
+            {(data.period === 'PK' || (data.period === 'End' && (data.pkState?.home?.length > 0 || data.pkState?.away?.length > 0))) && (
+               <div className="absolute -bottom-5 translate-y-1/2 w-full flex justify-between px-8 z-30 pointer-events-auto">
+                 <div className="flex gap-1 bg-white/90 px-2 py-1.5 rounded-xl shadow-md border border-slate-200 backdrop-blur-sm">
+                    {Array.from({ length: Math.max(5, (data.pkState?.home?.length || 0)) }).map((_, i) => {
+                       const res = data.pkState?.home?.[i];
+                       let bgClass = "bg-white border-slate-300 text-slate-300";
+                       let icon = "-";
+                       if (res === 'O') { bgClass = "bg-pink-500 border-pink-500 text-white shadow-sm"; icon = "O"; }
+                       if (res === 'X') { bgClass = "bg-slate-400 border-slate-400 text-white shadow-inner"; icon = "X"; }
+                       return <div key={i} className={`w-6 h-6 rounded-full border-[2px] flex justify-center items-center font-black text-[10px] ${bgClass}`}>{icon}</div>
+                    })}
+                 </div>
+                 <div className="flex gap-1 bg-white/90 px-2 py-1.5 rounded-xl shadow-md border border-slate-200 backdrop-blur-sm">
+                    {Array.from({ length: Math.max(5, (data.pkState?.away?.length || 0)) }).map((_, i) => {
+                       const res = data.pkState?.away?.[i];
+                       let bgClass = "bg-white border-slate-300 text-slate-300";
+                       let icon = "-";
+                       if (res === 'O') { bgClass = "bg-pink-500 border-pink-500 text-white shadow-sm"; icon = "O"; }
+                       if (res === 'X') { bgClass = "bg-slate-400 border-slate-400 text-white shadow-inner"; icon = "X"; }
+                       return <div key={i} className={`w-6 h-6 rounded-full border-[2px] flex justify-center items-center font-black text-[10px] ${bgClass}`}>{icon}</div>
+                    })}
+                 </div>
+               </div>
+            )}
          </div>
 
          {/* 桃色ベースのタイム */}
          <div className="flex-1 w-full flex justify-center items-center relative">
             <div className={`flex items-baseline gap-3 ${isOverTime && data.period !== 'End' && data.period !== 'PK' ? 'text-pink-600' : 'text-[#0f172a]'}`}>
-               <span className="text-xs font-black tracking-widest uppercase">
-                  {data.period === '1st' ? '前半' : 
-                   data.period === '2nd' ? '後半' : 
-                   data.period === '1stEX' ? '延長前半' : 
-                   data.period === '2ndEX' ? '延長後半' : 
-                   data.period === 'PK' ? 'PK戦' : '試合終了'}
-               </span>
-               {data.period !== 'PK' && <span className="text-4xl font-mono font-black tabular-nums">{String(formattedTime)}</span>}
+               {/* 試合終了時はドカンと横書きで表示 (MiniBoard側) */}
+               {data.period === 'PK' ? null : data.period === 'End' ? (
+                  <span className="text-3xl font-black tracking-widest z-10">試合終了</span>
+               ) : (
+                  <>
+                     <span className="text-xs font-black tracking-widest uppercase">
+                        {data.period === '1st' ? '前半' : 
+                         data.period === '2nd' ? '後半' : 
+                         data.period === '1stEX' ? '延長前半' : 
+                         data.period === '2ndEX' ? '延長後半' : ''}
+                     </span>
+                     <span className="text-4xl font-mono font-black tabular-nums">{String(formattedTime)}</span>
+                  </>
+               )}
             </div>
-            {data.additionalTime > 0 && data.period !== 'PK' && <span className="absolute right-4 bg-pink-600 border border-white text-white px-2 py-0.5 rounded shadow-sm font-black text-sm">+{Number(data.additionalTime)}</span>}
+            {data.additionalTime > 0 && data.period !== 'PK' && data.period !== 'End' && <span className="absolute right-4 bg-pink-600 border border-white text-white px-2 py-0.5 rounded shadow-sm font-black text-sm">+{Number(data.additionalTime)}</span>}
+         
+            {/* 試合終了時の前後半別スコア表示 (MiniBoard用) */}
+            {data.period === 'End' && (
+              <div className="absolute top-0 -translate-y-1/2 bg-white border-2 border-cyan-400 px-4 py-1.5 rounded-full flex gap-4 text-[#0f172a] font-bold tracking-widest shadow-md z-30 uppercase text-[10px]">
+                 <div>前半: {Number(data.firstHalfScore?.home || 0)} - {Number(data.firstHalfScore?.away || 0)}</div>
+                 {(() => {
+                    const homeArr = Array.isArray(data.pkState?.home) ? data.pkState.home : [];
+                    const awayArr = Array.isArray(data.pkState?.away) ? data.pkState.away : [];
+                    const homePkScore = homeArr.filter(r => r === 'O').length || 0;
+                    const awayPkScore = awayArr.filter(r => r === 'O').length || 0;
+                    const homeSecondHalf = Number(data.score?.home || 0) - Number(data.firstHalfScore?.home || 0);
+                    const awaySecondHalf = Number(data.score?.away || 0) - Number(data.firstHalfScore?.away || 0);
+                    
+                    return (
+                      <>
+                        <div>後半: {homeSecondHalf} - {awaySecondHalf}</div>
+                        {(homeArr.length > 0 || awayArr.length > 0) && (
+                          <div className="text-pink-600">PK: {homePkScore} - {awayPkScore}</div>
+                        )}
+                      </>
+                    );
+                 })()}
+              </div>
+            )}
          </div>
       </div>
       
