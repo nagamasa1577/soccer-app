@@ -465,12 +465,15 @@ function Scoreboard({ user, courtId }) {
     const homePkScore = homeList.filter(r => r === 'O').length;
     const awayPkScore = awayList.filter(r => r === 'O').length;
     
-    const homeRemaining = Math.max(5 - homeKicks, 0);
-    const awayRemaining = Math.max(5 - awayKicks, 0);
+    // 5回目までの通常判定
+    if (homeKicks <= 5 || awayKicks <= 5) {
+      const homeRemaining = Math.max(5 - homeKicks, 0);
+      const awayRemaining = Math.max(5 - awayKicks, 0);
+      if (homePkScore > awayPkScore + awayRemaining) return 'home';
+      if (awayPkScore > homePkScore + homeRemaining) return 'away';
+    }
 
-    if (homePkScore > awayPkScore + awayRemaining) return 'home';
-    if (awayPkScore > homePkScore + homeRemaining) return 'away';
-
+    // 6回目以降のサドンデス判定
     if (homeKicks >= 5 && awayKicks >= 5 && homeKicks === awayKicks) {
       if (homePkScore !== awayPkScore) return homePkScore > awayPkScore ? 'home' : 'away';
     }
@@ -540,6 +543,12 @@ function Scoreboard({ user, courtId }) {
   };
 
   if (!isLoaded) return <div className="flex items-center justify-center min-h-screen bg-black text-pink-500 font-black tracking-widest">SYNCING...</div>;
+
+  // PK戦の正しい枠数計算を追加
+  const homeKicks = Array.isArray(pkState?.home) ? pkState.home.length : 0;
+  const awayKicks = Array.isArray(pkState?.away) ? pkState.away.length : 0;
+  const maxKicks = Math.max(homeKicks, awayKicks);
+  const pkSlotsCount = Math.max(5, homeKicks === awayKicks ? maxKicks + 1 : maxKicks);
 
   const getPeriodKanji = () => {
     switch(period) {
@@ -638,9 +647,13 @@ function Scoreboard({ user, courtId }) {
 
                 {/* PK履歴 */}
                 {period === 'PK' && (
-                  <div className="absolute -bottom-10 translate-y-1/2 w-full flex justify-between px-12 md:px-24 z-30 pointer-events-auto scale-90 md:scale-100">
-                    <PkTracker team="home" history={Array.isArray(pkState?.home) ? pkState.home : []} onAdd={(res) => handlePkAction('home', res)} />
-                    <PkTracker team="away" history={Array.isArray(pkState?.away) ? pkState.away : []} onAdd={(res) => handlePkAction('away', res)} />
+                  <div className="absolute -bottom-10 translate-y-1/2 w-full flex justify-between px-4 md:px-12 z-30 pointer-events-auto scale-90 md:scale-100">
+                    <div className="flex-1 flex justify-center max-w-[48%]">
+                       <PkTracker team="home" history={Array.isArray(pkState?.home) ? pkState.home : []} slotsCount={pkSlotsCount} onAdd={(res) => handlePkAction('home', res)} />
+                    </div>
+                    <div className="flex-1 flex justify-center max-w-[48%]">
+                       <PkTracker team="away" history={Array.isArray(pkState?.away) ? pkState.away : []} slotsCount={pkSlotsCount} onAdd={(res) => handlePkAction('away', res)} />
+                    </div>
                   </div>
                 )}
               </div>
@@ -914,14 +927,13 @@ function SettingsModal({ currentData, onSave, onClose, onReset }) {
 // ==========================================
 // PK Tracker Component
 // ==========================================
-function PkTracker({ team, history = [], onAdd }) {
+function PkTracker({ team, history = [], slotsCount = 5, onAdd }) {
   const safeHistory = Array.isArray(history) ? history : [];
-  const slotsCount = Math.max(5, safeHistory.length + 1);
   const slots = Array.from({ length: slotsCount });
 
   return (
-    <div className="flex flex-col items-center gap-3 bg-white/90 px-6 py-4 rounded-2xl shadow-lg border border-slate-200 backdrop-blur-sm">
-      <div className="flex items-center gap-2">
+    <div className="flex flex-col items-center gap-2 md:gap-3 bg-white/90 px-4 md:px-6 py-4 rounded-2xl shadow-lg border border-slate-200 backdrop-blur-sm w-full max-w-full">
+      <div className="flex items-center justify-center gap-1.5 md:gap-2 flex-wrap">
         {slots.map((_, i) => {
           const res = safeHistory[i];
           let bgClass = "bg-white border-slate-300 text-slate-300";
@@ -930,15 +942,15 @@ function PkTracker({ team, history = [], onAdd }) {
           if (res === 'X') { bgClass = "bg-slate-400 border-slate-400 text-white shadow-inner"; icon = "X"; }
           
           return (
-            <div key={i} className={`w-12 h-12 md:w-14 md:h-14 flex items-center justify-center rounded-full border-[3px] font-black text-xl md:text-2xl ${bgClass}`}>
+            <div key={i} className={`w-10 h-10 md:w-12 md:h-12 flex items-center justify-center rounded-full border-[3px] font-black text-lg md:text-xl shrink-0 ${bgClass}`}>
               {icon}
             </div>
           );
         })}
       </div>
-      <div className="flex gap-3 mt-2">
-        <button onClick={() => onAdd('O')} className="px-5 py-2 bg-white hover:bg-slate-50 text-pink-600 font-black border-2 border-pink-200 rounded-lg transition-colors tracking-widest text-sm uppercase shadow-sm">O 成功</button>
-        <button onClick={() => onAdd('X')} className="px-5 py-2 bg-white hover:bg-slate-50 text-slate-500 font-black border-2 border-slate-200 rounded-lg transition-colors tracking-widest text-sm uppercase shadow-sm">X 失敗</button>
+      <div className="flex gap-2 md:gap-3 mt-1">
+        <button onClick={() => onAdd('O')} className="px-4 py-2 bg-white hover:bg-slate-50 text-pink-600 font-black border-2 border-pink-200 rounded-lg transition-colors tracking-widest text-xs md:text-sm uppercase shadow-sm">O 成功</button>
+        <button onClick={() => onAdd('X')} className="px-4 py-2 bg-white hover:bg-slate-50 text-slate-500 font-black border-2 border-slate-200 rounded-lg transition-colors tracking-widest text-xs md:text-sm uppercase shadow-sm">X 失敗</button>
       </div>
     </div>
   );
