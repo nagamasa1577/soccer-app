@@ -465,15 +465,15 @@ function Scoreboard({ user, courtId }) {
     const homePkScore = homeList.filter(r => r === 'O').length;
     const awayPkScore = awayList.filter(r => r === 'O').length;
     
-    // 5回目までの通常判定
-    if (homeKicks <= 5 || awayKicks <= 5) {
+    // ▼ 修正：どちらかが5回「未満」の場合のみ、残りキック数による決着判定を行う
+    if (homeKicks < 5 || awayKicks < 5) {
       const homeRemaining = Math.max(5 - homeKicks, 0);
       const awayRemaining = Math.max(5 - awayKicks, 0);
       if (homePkScore > awayPkScore + awayRemaining) return 'home';
       if (awayPkScore > homePkScore + homeRemaining) return 'away';
     }
 
-    // 6回目以降のサドンデス判定
+    // ▼ 修正：両チームが5回「以上」蹴っている場合は、必ず同回数になった時だけ判定する
     if (homeKicks >= 5 && awayKicks >= 5 && homeKicks === awayKicks) {
       if (homePkScore !== awayPkScore) return homePkScore > awayPkScore ? 'home' : 'away';
     }
