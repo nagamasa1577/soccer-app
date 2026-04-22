@@ -1,14 +1,16 @@
-import "./globals.css"; //
+// ... existing code ...
+import "./globals.css";
+
 export const metadata = { title: 'Soccer Scoreboard' };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  return (
-    <html lang="ja">
-      <body style={{ margin: 0, background: 'black' }}>{children}</body>
-    </html>
-  );
-}
+// --- ▼ ここから追加 ▼ ---
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 10,
+  userScalable: true,
+};
+// --- ▲ ここまで追加 ▲ ---
+
+export default function RootLayout({ children }) {
+// ... existing code ...
