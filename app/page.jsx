@@ -1309,8 +1309,8 @@ function ObsScoreboard({ courtId }) {
                 <div className="text-[10rem] leading-none font-mono font-black text-white drop-shadow-md tabular-nums">{Number(data.score?.away || 0)}</div>
               </div>
 
-              {/* PK Status Overlay for OBS (水色帯の下部に重ねる) */}
-              {data.period === 'PK' && (
+              {/* PK Status Overlay for OBS (水色帯の下部に重ねる：試合終了後も履歴を残す) */}
+              {(data.period === 'PK' || (data.period === 'End' && (data.pkState?.home?.length > 0 || data.pkState?.away?.length > 0))) && (
                  <div className="absolute -bottom-10 translate-y-1/2 w-full flex justify-between px-16 z-30 pointer-events-auto">
                    <div className="flex gap-2 bg-white/90 px-4 py-3 rounded-2xl shadow-lg border border-slate-200 backdrop-blur-sm">
                       {Array.from({ length: Math.max(5, (data.pkState?.home?.length || 0)) }).map((_, i) => {
@@ -1369,6 +1369,30 @@ function ObsScoreboard({ courtId }) {
                      </div>
                   )}
                </div>
+
+               {/* 試合終了時の前後半別スコア表示 (OBS用) */}
+               {data.period === 'End' && (
+                 <div className="absolute top-0 -translate-y-1/2 bg-white border-2 border-cyan-400 px-10 py-3 rounded-full flex gap-12 text-[#0f172a] font-bold tracking-widest shadow-md z-30 uppercase text-xl">
+                    <div>前半: {Number(data.firstHalfScore?.home || 0)} - {Number(data.firstHalfScore?.away || 0)}</div>
+                    {(() => {
+                       const homeArr = Array.isArray(data.pkState?.home) ? data.pkState.home : [];
+                       const awayArr = Array.isArray(data.pkState?.away) ? data.pkState.away : [];
+                       const homePkScore = homeArr.filter(r => r === 'O').length || 0;
+                       const awayPkScore = awayArr.filter(r => r === 'O').length || 0;
+                       const homeSecondHalf = Number(data.score?.home || 0) - Number(data.firstHalfScore?.home || 0);
+                       const awaySecondHalf = Number(data.score?.away || 0) - Number(data.firstHalfScore?.away || 0);
+                       
+                       return (
+                         <>
+                           <div>後半: {homeSecondHalf} - {awaySecondHalf}</div>
+                           {(homeArr.length > 0 || awayArr.length > 0) && (
+                             <div className="text-pink-600">PK: {homePkScore} - {awayPkScore}</div>
+                           )}
+                         </>
+                       );
+                    })()}
+                 </div>
+               )}
             </div>
 
           </div>
