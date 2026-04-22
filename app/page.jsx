@@ -652,14 +652,13 @@ function Scoreboard({ user, courtId }) {
                    {/* PK戦の時は下段を空にする */}
                    {period === 'PK' ? null : (
                       <div className="relative flex items-center justify-center">
-                         {/* 縦書きの「前半」など (グレーのマット付き、タイムの左隣に固定) */}
-                         <div className="absolute right-[100%] mr-2 md:mr-6 bg-slate-800/10 px-1 py-2 md:px-1.5 md:py-4 rounded-lg flex items-center justify-center shadow-inner">
-                            <span 
-                               className="text-lg md:text-2xl font-black tracking-widest opacity-80"
-                               style={{ writingMode: 'vertical-rl', WebkitWritingMode: 'vertical-rl', textOrientation: 'upright', letterSpacing: '0.1em' }}
-                            >
-                               {String(getPeriodKanji())}
-                            </span>
+                         {/* 縦に文字を積み上げる（100%確実な縦書き） */}
+                         <div className="absolute right-[100%] mr-2 md:mr-6 bg-slate-800/10 px-2 py-3 md:px-2.5 md:py-4 rounded-lg flex items-center justify-center shadow-inner">
+                            <div className="flex flex-col items-center justify-center gap-0.5 md:gap-1 text-lg md:text-2xl font-black opacity-80 leading-none">
+                               {String(getPeriodKanji()).split('').map((char, index) => (
+                                 <span key={index}>{char}</span>
+                               ))}
+                            </div>
                          </div>
                          
                          {/* センター配置のタイム (スマホ時は少しだけ小さくしてスペース確保) */}
@@ -1339,17 +1338,16 @@ function ObsScoreboard({ courtId }) {
                   {/* PK戦の時は下段を空にする (OBS側) */}
                   {data.period === 'PK' ? null : (
                      <div className="relative flex items-center justify-center">
-                        {/* 縦書きの「前半」など (グレーのマット付き、タイムの左隣に固定) */}
-                        <div className="absolute right-[100%] mr-5 bg-slate-800/10 px-2 py-4 rounded-lg flex items-center justify-center shadow-inner">
-                           <span 
-                              className="text-2xl font-black tracking-widest opacity-80"
-                              style={{ writingMode: 'vertical-rl', WebkitWritingMode: 'vertical-rl', textOrientation: 'upright', letterSpacing: '0.1em' }}
-                           >
-                              {data.period === '1st' ? '前半' : 
+                        {/* 縦に文字を積み上げる（100%確実な縦書き / OBS側） */}
+                        <div className="absolute right-[100%] mr-5 bg-slate-800/10 px-2.5 py-4 rounded-lg flex items-center justify-center shadow-inner">
+                           <div className="flex flex-col items-center justify-center gap-1 text-2xl font-black opacity-80 leading-none">
+                              {(data.period === '1st' ? '前半' : 
                                data.period === '2nd' ? '後半' : 
                                data.period === '1stEX' ? '延長前半' : 
-                               data.period === '2ndEX' ? '延長後半' : '終了'}
-                           </span>
+                               data.period === '2ndEX' ? '延長後半' : '終了').split('').map((char, index) => (
+                                 <span key={index}>{char}</span>
+                              ))}
+                           </div>
                         </div>
                         
                         {/* センター配置のタイム (常にど真ん中) */}
