@@ -177,7 +177,7 @@ function MainController() {
   };
 
   return (
-    <div className="relative bg-black min-h-screen overflow-hidden font-sans">
+    <div className="relative bg-black min-h-screen font-sans">
       
       {/* メニューボタン */}
       <button 
@@ -220,7 +220,7 @@ function MainController() {
         </div>
       )}
 
-      <div onClick={() => setIsMenuOpen(false)} className="relative z-10"> 
+      <div onClick={() => setIsMenuOpen(false)} className="relative z-10 pt-10 pb-20 w-full flex justify-center"> 
         <Scoreboard user={user} courtId={courtId} />
       </div>
     </div>
@@ -490,8 +490,8 @@ function Scoreboard({ user, courtId }) {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen p-2 font-sans text-white select-none overscroll-none">
-      <div className="transform scale-[0.8] md:scale-95 origin-center w-full max-w-5xl flex flex-col items-center relative z-20">
+    <div className="w-full px-2 font-sans text-white select-none flex flex-col items-center">
+      <div className="transform scale-[0.8] md:scale-95 origin-top w-full max-w-5xl flex flex-col items-center relative z-20">
         
         {/* 大会名（枠の外側） - ブラックアウトラインでくっきりと */}
         <div 
