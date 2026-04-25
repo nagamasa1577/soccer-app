@@ -279,7 +279,6 @@ function MainController() {
   return (
     <div className="fixed inset-0 bg-black overflow-hidden font-sans">
       
-      {/* 修正③：メニューボタンを極限まで右上端に寄せて被りを回避 */}
       <button 
         onClick={() => setIsMenuOpen(!isMenuOpen)}
         className="absolute top-1 right-1 z-[100] w-10 h-10 bg-slate-800/60 rounded border border-white/10 flex items-center justify-center text-white/80 hover:bg-slate-700 hover:text-white transition-colors shadow-lg backdrop-blur-md"
@@ -289,7 +288,6 @@ function MainController() {
         </svg>
       </button>
 
-      {/* 修正③：開くメニュー本体も右上端を基準にする */}
       {isMenuOpen && (
         <div className="absolute top-14 right-1 z-[100] w-80 bg-white p-6 rounded-lg border-2 border-slate-200 shadow-2xl flex flex-col gap-4">
           <div className="flex items-center justify-between pb-4 border-b border-slate-200">
@@ -330,19 +328,17 @@ function MainController() {
 
 
 // ==========================================
-// ③ サッカー用 スコアボード本体
+// ③ サッカー用 スコアボード本体 (操作コンテナ)
 // ==========================================
 function Scoreboard({ user, courtId }) {
   const [isLoaded, setIsLoaded] = useState(false);
   
-  // Soccer specific states
-  // 修正②⑤：データ構造をオブジェクト（文字とサイズ）に変更
   const [tournamentName, setTournamentName] = useState({ text: "第1回 ジュニアカップ", size: 70 });
   const [halfTimeDuration, setHalfTimeDuration] = useState(20); 
   const [extraTimeDuration, setExtraTimeDuration] = useState(5); 
   const [hasExtraTime, setHasExtraTime] = useState(false); 
   const [hasPK, setHasPK] = useState(true); 
-  const [period, setPeriod] = useState("1st"); // '1st', '2nd', '1stEX', '2ndEX', 'PK', 'End'
+  const [period, setPeriod] = useState("1st"); 
   const [score, setScore] = useState({ home: 0, away: 0 }); 
   const [teamNames, setTeamNames] = useState({ 
     home: { line1: "大阪", line2: "", size1: 100, size2: 50 }, 
@@ -355,11 +351,9 @@ function Scoreboard({ user, courtId }) {
   const [firstHalfScore, setFirstHalfScore] = useState({ home: 0, away: 0 }); 
 
   const [showSettingsModal, setShowSettingsModal] = useState(false);
-
   const [history, setHistory] = useState([]);
   const [future, setFuture] = useState([]);
 
-  // Firestore DB Path
   const collectionPath = `artifacts/${globalAppId}/public/data/courts`;
   const courtRef = doc(db, collectionPath, courtId);
 
@@ -371,22 +365,17 @@ function Scoreboard({ user, courtId }) {
         const snap = await getDoc(courtRef);
         if (snap.exists() && isMounted) {
           const d = snap.data();
-          // 修正②⑤：古いデータ形式（単なる文字列）が来てもエラーにならないように自動変換
-          if(d.tournamentName !== undefined) {
-             setTournamentName(typeof d.tournamentName === 'string' ? { text: d.tournamentName, size: 70 } : d.tournamentName);
-          }
+          if(d.tournamentName !== undefined) setTournamentName(typeof d.tournamentName === 'string' ? { text: d.tournamentName, size: 70 } : d.tournamentName);
           if(d.halfTimeDuration !== undefined) setHalfTimeDuration(d.halfTimeDuration);
           if(d.extraTimeDuration !== undefined) setExtraTimeDuration(d.extraTimeDuration);
           if(d.hasExtraTime !== undefined) setHasExtraTime(d.hasExtraTime);
           if(d.hasPK !== undefined) setHasPK(d.hasPK);
           if(d.period) setPeriod(d.period);
           if(d.score) setScore(d.score);
-          if(d.teamNames) {
-             setTeamNames({
-                home: typeof d.teamNames.home === 'string' ? { line1: d.teamNames.home, line2: "", size1: 100, size2: 50 } : (d.teamNames.home || { line1: "", line2: "", size1: 100, size2: 50 }),
-                away: typeof d.teamNames.away === 'string' ? { line1: d.teamNames.away, line2: "", size1: 100, size2: 50 } : (d.teamNames.away || { line1: "", line2: "", size1: 100, size2: 50 })
-             });
-          }
+          if(d.teamNames) setTeamNames({
+            home: typeof d.teamNames.home === 'string' ? { line1: d.teamNames.home, line2: "", size1: 100, size2: 50 } : (d.teamNames.home || { line1: "", line2: "", size1: 100, size2: 50 }),
+            away: typeof d.teamNames.away === 'string' ? { line1: d.teamNames.away, line2: "", size1: 100, size2: 50 } : (d.teamNames.away || { line1: "", line2: "", size1: 100, size2: 50 })
+          });
           if(d.teamColors) setTeamColors(d.teamColors);
           if(d.timer) setTimer(d.timer);
           if(d.additionalTime !== undefined) setAdditionalTime(d.additionalTime);
@@ -421,10 +410,9 @@ function Scoreboard({ user, courtId }) {
   const currentDuration = (period === '1stEX' || period === '2ndEX') ? extraTimeDuration : halfTimeDuration;
   const { formattedTime, isOverTime } = useTimer(timer, currentDuration);
 
-  // 修正④：UNDO/REDOの履歴に additionalTime (AT) を復活させる
   const getCurrentStateSnapshot = () => ({ 
     tournamentName, halfTimeDuration, extraTimeDuration, hasExtraTime, hasPK, period, score: { ...score }, teamNames: { ...teamNames }, teamColors: { ...teamColors },
-    additionalTime, // ATを履歴に含める
+    additionalTime,
     pkState: { home: [...(pkState?.home||[])], away: [...(pkState?.away||[])] },
     firstHalfScore: { ...firstHalfScore }
   });
@@ -438,7 +426,6 @@ function Scoreboard({ user, courtId }) {
     setTournamentName(prev.tournamentName); setHalfTimeDuration(prev.halfTimeDuration); setExtraTimeDuration(prev.extraTimeDuration);
     setHasExtraTime(prev.hasExtraTime); setHasPK(prev.hasPK);
     setPeriod(prev.period); setScore(prev.score); setTeamNames(prev.teamNames); setTeamColors(prev.teamColors);
-    // タイマーは復元しないが、ATは復元する
     setAdditionalTime(prev.additionalTime);
     setPkState(prev.pkState); setFirstHalfScore(prev.firstHalfScore);
     setHistory(h => h.slice(0, -1)); 
@@ -451,7 +438,6 @@ function Scoreboard({ user, courtId }) {
     setTournamentName(next.tournamentName); setHalfTimeDuration(next.halfTimeDuration); setExtraTimeDuration(next.extraTimeDuration);
     setHasExtraTime(next.hasExtraTime); setHasPK(next.hasPK);
     setPeriod(next.period); setScore(next.score); setTeamNames(next.teamNames); setTeamColors(next.teamColors);
-    // タイマーは復元しないが、ATは復元する
     setAdditionalTime(next.additionalTime);
     setPkState(next.pkState); setFirstHalfScore(next.firstHalfScore);
     setFuture(f => f.slice(0, -1)); 
@@ -481,7 +467,6 @@ function Scoreboard({ user, courtId }) {
     const homePkScore = homeList.filter(r => r === 'O').length;
     const awayPkScore = awayList.filter(r => r === 'O').length;
     
-    // どちらかが5回「未満」の場合のみ、残りキック数による決着判定を行う
     if (homeKicks < 5 || awayKicks < 5) {
       const homeRemaining = Math.max(5 - homeKicks, 0);
       const awayRemaining = Math.max(5 - awayKicks, 0);
@@ -489,7 +474,6 @@ function Scoreboard({ user, courtId }) {
       if (awayPkScore > homePkScore + homeRemaining) return 'away';
     }
 
-    // 両チームが5回「以上」蹴っている場合は、必ず同回数になった時だけ判定する
     if (homeKicks >= 5 && awayKicks >= 5 && homeKicks === awayKicks) {
       if (homePkScore !== awayPkScore) return homePkScore > awayPkScore ? 'home' : 'away';
     }
@@ -560,222 +544,38 @@ function Scoreboard({ user, courtId }) {
 
   if (!isLoaded) return <div className="flex items-center justify-center min-h-screen bg-black text-pink-500 font-black tracking-widest">SYNCING...</div>;
 
-  // 安全でシンプルな枠数計算
   const homeKicks = pkState?.home?.length || 0;
   const awayKicks = pkState?.away?.length || 0;
   const maxKicks = Math.max(homeKicks, awayKicks);
   const pkSlotsCount = Math.max(5, homeKicks === awayKicks ? maxKicks + 1 : maxKicks);
 
-  const getPeriodKanji = () => {
-    switch(period) {
-      case '1st': return '前半';
-      case '2nd': return '後半';
-      case '1stEX': return '延長前半';
-      case '2ndEX': return '延長後半';
-      case 'PK': return 'PK戦';
-      case 'End': return '試合終了';
-      default: return '';
-    }
+  const dataProps = { tournamentName, teamNames, teamColors, score, period, pkState, firstHalfScore, additionalTime };
+  const timeDisplay = { formattedTime, isOverTime };
+  const historyInfo = { canUndo: history.length > 0, canRedo: future.length > 0 };
+  const actions = {
+    onShowSettings: () => setShowSettingsModal(true),
+    onScoreChange: handleScoreChange,
+    onPkAction: handlePkAction,
+    onToggleTimer: toggleTimer,
+    onAddAdditionalTime: () => { saveHistory(); setAdditionalTime(prev => prev + 1); },
+    onPeriodEnd: handlePeriodEnd,
+    onUndo: handleUndo,
+    onRedo: handleRedo
   };
 
   return (
     <>
       <PinchZoomWrapper>
-        <div className="font-sans text-white w-[900px] md:w-[1000px] max-w-[95vw] flex flex-col items-center relative z-20">
-          
-          {/* 修正⑤：大会名（字間を自然にし、サイズを設定から適用） */}
-          <div 
-            className="text-white font-black mb-8 cursor-pointer pointer-events-auto uppercase drop-shadow-xl"
-            style={{ 
-               fontSize: `${tournamentName?.size || 70}px`, 
-               letterSpacing: "normal", 
-               textShadow: "2px 2px 0 #000, -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 0px 2px 0 #000, 0px -2px 0 #000, 2px 0px 0 #000, -2px 0px 0 #000, 0px 6px 12px rgba(0,0,0,0.5)" 
-            }}
-            onClick={() => setShowSettingsModal(true)}
-          >
-             {String(tournamentName?.text || "")}
-          </div>
-
-          {/* Main Board Container (Pop & Clean Style) */}
-          <div className="relative w-full aspect-[16/9] rounded-2xl border-[3px] border-white/60 shadow-[0_20px_50px_rgba(0,0,0,0.8)] flex flex-col overflow-hidden backdrop-blur-sm">
-            
-            {/* 背景グループ */}
-            <div className="absolute inset-0 z-0 pointer-events-none flex flex-col">
-                <div className="flex-[3] bg-white/85"></div>
-                <div className="flex-[1] bg-pink-50/85"></div>
-            </div>
-            {/* ストライプ */}
-            <div className="absolute inset-0 opacity-40" style={{ backgroundImage: "repeating-linear-gradient(-45deg, transparent, transparent 15px, rgba(255,255,255,0.4) 15px, rgba(255,255,255,0.4) 30px)" }}></div>
-            
-            {/* コンテンツの配置レイヤー (isolationで背景との干渉を遮断) */}
-            <div className="relative z-10 w-full h-full flex flex-col pointer-events-none" style={{ isolation: 'isolate' }}>
-              
-              {/* 上段：チーム名 (白背景部分) */}
-              <div className="flex-1 flex flex-col justify-end pb-8 pointer-events-auto">
-                <div className="w-full flex items-end justify-center gap-4 md:gap-12 px-12">
-                  
-                  {/* 修正②：HOME チーム名のマニュアル2段組・サイズ調整 */}
-                  <div className="flex-1 flex items-end justify-end gap-2 md:gap-4">
-                    <div className="w-6 h-8 md:w-10 md:h-[50px] rounded-sm mb-1 shadow-sm transition-colors shrink-0" style={{ backgroundColor: teamColors?.home || "#0ea5e9" }}></div>
-                    <div 
-                      className="text-center font-black text-[#0f172a] uppercase drop-shadow-md flex flex-col justify-center items-center" 
-                      style={{ textShadow: "3px 3px 0 #fff, -3px -3px 0 #fff, 3px -3px 0 #fff, -3px 3px 0 #fff, 0 6px 12px rgba(0,0,0,0.2)", letterSpacing: "-0.02em" }}
-                    >
-                       <span style={{ fontSize: `${teamNames?.home?.size1 || 100}px`, lineHeight: 1 }}>{teamNames?.home?.line1 || ""}</span>
-                       {(teamNames?.home?.line2) && (
-                          <span style={{ fontSize: `${teamNames?.home?.size2 || 50}px`, lineHeight: 1, marginTop: "4px" }}>{teamNames?.home?.line2}</span>
-                       )}
-                    </div>
-                    <div className="w-6 h-8 md:w-10 md:h-[50px] rounded-sm mb-1 shadow-sm transition-colors shrink-0" style={{ backgroundColor: teamColors?.home || "#0ea5e9" }}></div>
-                  </div>
-                  
-                  {/* VS or - */}
-                  <div className="text-5xl w-8 md:w-12 opacity-0 shrink-0">-</div>
-                  
-                  {/* 修正②：AWAY チーム名のマニュアル2段組・サイズ調整 */}
-                  <div className="flex-1 flex items-end justify-start gap-2 md:gap-4">
-                    <div className="w-6 h-8 md:w-10 md:h-[50px] rounded-sm mb-1 shadow-sm transition-colors shrink-0" style={{ backgroundColor: teamColors?.away || "#ec4899" }}></div>
-                    <div 
-                      className="text-center font-black text-[#0f172a] uppercase drop-shadow-md flex flex-col justify-center items-center" 
-                      style={{ textShadow: "3px 3px 0 #fff, -3px -3px 0 #fff, 3px -3px 0 #fff, -3px 3px 0 #fff, 0 6px 12px rgba(0,0,0,0.2)", letterSpacing: "-0.02em" }}
-                    >
-                       <span style={{ fontSize: `${teamNames?.away?.size1 || 100}px`, lineHeight: 1 }}>{teamNames?.away?.line1 || ""}</span>
-                       {(teamNames?.away?.line2) && (
-                          <span style={{ fontSize: `${teamNames?.away?.size2 || 50}px`, lineHeight: 1, marginTop: "4px" }}>{teamNames?.away?.line2}</span>
-                       )}
-                    </div>
-                    <div className="w-6 h-8 md:w-10 md:h-[50px] rounded-sm mb-1 shadow-sm transition-colors shrink-0" style={{ backgroundColor: teamColors?.away || "#ec4899" }}></div>
-                  </div>
-
-                </div>
-              </div>
-
-              {/* 中段：水色のお洒落ベース (得点エリア) */}
-              <div className="h-[40%] w-full bg-gradient-to-r from-cyan-400/90 to-cyan-500/90 shadow-md flex items-center justify-center gap-10 md:gap-32 px-12 pointer-events-auto relative backdrop-blur-sm z-20">
-                <div className="flex-1 flex justify-center">
-                  <div onClick={() => handleScoreChange('home', 1)} className="text-[9rem] md:text-[14rem] leading-none font-mono font-black text-white cursor-pointer hover:text-cyan-100 transition-colors drop-shadow-md select-none tabular-nums">
-                     {Number(score?.home || 0)}
-                  </div>
-                </div>
-                
-                {/* PK戦の時はハイフンを消して「PK戦」と中央に表示 */}
-                {period === 'PK' ? (
-                  <div className="text-5xl md:text-7xl font-black tracking-widest text-white drop-shadow-md z-10 whitespace-nowrap">PK戦</div>
-                ) : (
-                  <div className="text-6xl md:text-8xl font-black text-white/50">-</div>
-                )}
-                
-                <div className="flex-1 flex justify-center">
-                  <div onClick={() => handleScoreChange('away', 1)} className="text-[9rem] md:text-[14rem] leading-none font-mono font-black text-white cursor-pointer hover:text-cyan-100 transition-colors drop-shadow-md select-none tabular-nums">
-                     {Number(score?.away || 0)}
-                  </div>
-                </div>
-
-                {/* PK履歴 */}
-                {period === 'PK' && (
-                  <div className="absolute -bottom-10 translate-y-1/2 w-full flex justify-between px-4 md:px-12 z-30 pointer-events-auto scale-90 md:scale-100">
-                    <div className="flex-1 flex justify-center max-w-[48%]">
-                       <PkTracker team="home" history={Array.isArray(pkState?.home) ? pkState.home : []} slotsCount={pkSlotsCount} onAdd={(res) => handlePkAction('home', res)} />
-                    </div>
-                    <div className="flex-1 flex justify-center max-w-[48%]">
-                       <PkTracker team="away" history={Array.isArray(pkState?.away) ? pkState.away : []} slotsCount={pkSlotsCount} onAdd={(res) => handlePkAction('away', res)} />
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* 下段：タイム表示 (縦書き＆センター配置) */}
-              <div className="flex-1 flex items-center justify-center pointer-events-auto relative w-full h-full">
-                
-                <div className={`absolute inset-0 flex items-center justify-center cursor-pointer transition-colors duration-200 ${isOverTime && period !== 'End' && period !== 'PK' ? 'text-pink-600 drop-shadow-[0_2px_10px_rgba(219,39,119,0.3)]' : 'text-[#0f172a] drop-shadow-sm'}`} onClick={period !== 'End' && period !== 'PK' ? toggleTimer : undefined}>
-                   {/* PK戦の時は下段を空にする、試合終了時は横書きで大きく表示 */}
-                   {period === 'PK' ? null : period === 'End' ? (
-                      <span className="text-5xl md:text-7xl font-black tracking-widest z-10">試合終了</span>
-                   ) : (
-                      <div className="relative flex items-center justify-center">
-                         {/* 縦に文字を積み上げる（100%確実な縦書き） */}
-                         <div className="absolute right-[100%] mr-2 md:mr-6 bg-slate-800/10 px-2 py-3 md:px-2.5 md:py-4 rounded-lg flex items-center justify-center shadow-inner">
-                            <div className="flex flex-col items-center justify-center gap-0.5 md:gap-1 text-lg md:text-2xl font-black opacity-80 leading-none">
-                               {String(getPeriodKanji()).split('').map((char, index) => (
-                                 <span key={index}>{char}</span>
-                               ))}
-                            </div>
-                         </div>
-                         
-                         {/* センター配置のタイム */}
-                         <span className="text-[4rem] md:text-[6.5rem] font-mono font-black tabular-nums tracking-tighter leading-none z-10">{String(formattedTime)}</span>
-
-                         {/* ロスタイム表示 (タイムの右隣に固定) */}
-                         {additionalTime > 0 && (
-                           <div className="absolute left-[100%] ml-4 md:ml-6 bg-pink-600 border border-white text-white font-black text-3xl md:text-4xl px-3 py-1 md:px-4 rounded shadow-md z-20">
-                             +{Number(additionalTime)}
-                           </div>
-                         )}
-                      </div>
-                   )}
-                </div>
-                
-                {/* 試合終了時の前後半別スコア表示 */}
-                {period === 'End' && (
-                  <div className="absolute top-0 -translate-y-1/2 bg-white border-2 border-cyan-400 px-8 py-2 rounded-full flex gap-10 text-[#0f172a] font-bold tracking-widest shadow-md z-30 uppercase">
-                     <div>前半: {Number(firstHalfScore?.home || 0)} - {Number(firstHalfScore?.away || 0)}</div>
-                     {(() => {
-                        const homeArr = Array.isArray(pkState?.home) ? pkState.home : [];
-                        const awayArr = Array.isArray(pkState?.away) ? pkState.away : [];
-                        const homePkScore = homeArr.filter(r => r === 'O').length || 0;
-                        const awayPkScore = awayArr.filter(r => r === 'O').length || 0;
-                        const homeSecondHalf = Number(score?.home || 0) - Number(firstHalfScore?.home || 0);
-                        const awaySecondHalf = Number(score?.away || 0) - Number(firstHalfScore?.away || 0);
-                        
-                        return (
-                          <>
-                            <div>後半: {homeSecondHalf} - {awaySecondHalf}</div>
-                            {(homeArr.length > 0 || awayArr.length > 0) && (
-                              <div className="text-pink-600">PK: {homePkScore} - {awayPkScore}</div>
-                            )}
-                          </>
-                        );
-                     })()}
-                  </div>
-                )}
-              </div>
-
-            </div> {/* /コンテンツの配置レイヤー 閉じタグ */}
-
-            {/* Layer 3: Controls (ステルス化された操作ボタン) */}
-            
-            {/* 右上：⚙️設定アイコン */}
-            <button 
-              onClick={() => setShowSettingsModal(true)} 
-              className="absolute top-6 right-6 w-12 h-12 bg-slate-800/40 hover:bg-slate-800/70 text-white/70 hover:text-white rounded-full border border-white/20 flex items-center justify-center text-xl transition-colors shadow-md z-30 backdrop-blur-sm"
-            >
-              ⚙️
-            </button>
-
-            {/* 修正①：左下：AT設定＆終了ボタン */}
-            <div className="absolute bottom-4 left-4 md:bottom-6 md:left-6 flex gap-2 md:gap-3 z-30">
-              {period !== 'PK' && (
-                <button onClick={() => { saveHistory(); setAdditionalTime(prev => prev + 1); }} className="px-3 py-2 md:px-5 md:py-3 bg-slate-800/40 hover:bg-slate-800/70 border border-white/20 text-white/80 hover:text-white text-xs md:text-sm font-black tracking-widest rounded shadow-md transition-colors uppercase backdrop-blur-sm">
-                   AT
-                </button>
-              )}
-              {period === '1st' && <ConfirmButton label="前半終了" onConfirm={() => handlePeriodEnd('1stEnd')} positionClass="relative" />}
-              {period === '2nd' && <ConfirmButton label="後半終了" onConfirm={() => handlePeriodEnd('2ndEnd')} positionClass="relative" />}
-              {period === '1stEX' && <ConfirmButton label="前半終了" onConfirm={() => handlePeriodEnd('1stExEnd')} positionClass="relative" />}
-              {period === '2ndEX' && <ConfirmButton label="後半終了" onConfirm={() => handlePeriodEnd('2ndExEnd')} positionClass="relative" />}
-            </div>
-
-            {/* 右下：UNDO / REDO */}
-            <div className="absolute bottom-6 right-6 flex gap-2 z-30">
-              <button onClick={handleUndo} disabled={history.length === 0} title="UNDO" className={`w-12 h-12 flex items-center justify-center bg-slate-800/40 hover:bg-slate-800/70 border border-white/20 text-white/80 hover:text-white rounded text-xl font-black transition-colors shadow-md backdrop-blur-sm ${history.length===0?'opacity-30':''}`}>↶</button>
-              <button onClick={handleRedo} disabled={future.length === 0} title="REDO" className={`w-12 h-12 flex items-center justify-center bg-slate-800/40 hover:bg-slate-800/70 border border-white/20 text-white/80 hover:text-white rounded text-xl font-black transition-colors shadow-md backdrop-blur-sm ${future.length===0?'opacity-30':''}`}>↷</button>
-            </div>
-
-          </div> {/* /Main Board Container 閉じタグ */}
-        </div> 
+        <ScoreboardUI 
+          data={dataProps} 
+          timeDisplay={timeDisplay} 
+          pkSlotsCount={pkSlotsCount} 
+          historyInfo={historyInfo} 
+          actions={actions} 
+          isObsMode={false} 
+        />
       </PinchZoomWrapper>
 
-      {/* モーダル群 */}
       {showSettingsModal && (
         <SettingsModal 
            currentData={{ tournamentName, teamNames, teamColors, score, timer, halfTimeDuration, extraTimeDuration, hasExtraTime, hasPK, additionalTime }}
@@ -797,16 +597,236 @@ function Scoreboard({ user, courtId }) {
            onReset={resetAllAction}
         />
       )}
-
     </>
   );
 }
+
+
+// ==========================================
+// Scoreboard 共通UIコンポーネント (メイン画面・OBS画面 兼用)
+// ==========================================
+function ScoreboardUI({ data, timeDisplay, pkSlotsCount, historyInfo, actions, isObsMode }) {
+  const { tournamentName, teamNames, teamColors, score, period, pkState, firstHalfScore, additionalTime } = data;
+  const { formattedTime, isOverTime } = timeDisplay;
+  
+  const getPeriodKanji = () => {
+    switch(period) {
+      case '1st': return '前半';
+      case '2nd': return '後半';
+      case '1stEX': return '延長前半';
+      case '2ndEX': return '延長後半';
+      case 'PK': return 'PK戦';
+      case 'End': return '試合終了';
+      default: return '';
+    }
+  };
+
+  return (
+    <div 
+      className={`font-sans text-white flex flex-col items-center relative z-20 ${isObsMode ? 'w-[1000px] origin-top-left pointer-events-none' : 'w-[900px] md:w-[1000px] max-w-[95vw]'}`}
+      style={isObsMode ? { transform: 'scale(0.8)' } : {}}
+    >
+      {/* 大会名 */}
+      <div 
+        className={`text-white font-black mb-8 uppercase drop-shadow-xl ${!isObsMode ? 'cursor-pointer pointer-events-auto' : ''}`}
+        style={{ 
+           fontSize: `${tournamentName?.size || 70}px`, 
+           letterSpacing: "normal", 
+           textShadow: "2px 2px 0 #000, -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 0px 2px 0 #000, 0px -2px 0 #000, 2px 0px 0 #000, -2px 0px 0 #000, 0px 6px 12px rgba(0,0,0,0.5)" 
+        }}
+        onClick={!isObsMode ? actions.onShowSettings : undefined}
+      >
+         {String(tournamentName?.text || "")}
+      </div>
+
+      {/* Main Board Container (Pop & Clean Style) */}
+      <div className="relative w-full aspect-[16/9] rounded-2xl border-[3px] border-white/60 shadow-[0_20px_50px_rgba(0,0,0,0.8)] flex flex-col overflow-hidden backdrop-blur-sm">
+        
+        {/* 背景グループ */}
+        <div className="absolute inset-0 z-0 pointer-events-none flex flex-col">
+            <div className="flex-[3] bg-white/85"></div>
+            <div className="flex-[1] bg-pink-50/85"></div>
+        </div>
+        {/* ストライプ */}
+        <div className="absolute inset-0 opacity-40" style={{ backgroundImage: "repeating-linear-gradient(-45deg, transparent, transparent 15px, rgba(255,255,255,0.4) 15px, rgba(255,255,255,0.4) 30px)" }}></div>
+        
+        {/* コンテンツの配置レイヤー (isolationで背景との干渉を遮断) */}
+        <div className="relative z-10 w-full h-full flex flex-col pointer-events-none" style={{ isolation: 'isolate' }}>
+          
+          {/* 上段：チーム名 (白背景部分) */}
+          <div className="flex-1 flex flex-col justify-end pb-8 pointer-events-auto">
+            <div className="w-full flex items-end justify-center gap-12 px-12">
+              
+              {/* HOME チーム名 */}
+              <div className="flex-1 flex items-end justify-end gap-4">
+                <div className="w-10 h-[50px] rounded-sm mb-1 shadow-sm transition-colors shrink-0" style={{ backgroundColor: teamColors?.home || "#0ea5e9" }}></div>
+                <div 
+                  className="text-center font-black text-[#0f172a] uppercase drop-shadow-md flex flex-col justify-center items-center" 
+                  style={{ textShadow: "3px 3px 0 #fff, -3px -3px 0 #fff, 3px -3px 0 #fff, -3px 3px 0 #fff, 0 6px 12px rgba(0,0,0,0.2)", letterSpacing: "-0.02em" }}
+                >
+                   <span style={{ fontSize: `${teamNames?.home?.size1 || 100}px`, lineHeight: 1 }}>{teamNames?.home?.line1 || ""}</span>
+                   {(teamNames?.home?.line2) && (
+                      <span style={{ fontSize: `${teamNames?.home?.size2 || 50}px`, lineHeight: 1, marginTop: "4px" }}>{teamNames?.home?.line2}</span>
+                   )}
+                </div>
+                <div className="w-10 h-[50px] rounded-sm mb-1 shadow-sm transition-colors shrink-0" style={{ backgroundColor: teamColors?.home || "#0ea5e9" }}></div>
+              </div>
+              
+              {/* VS or - */}
+              <div className="text-5xl w-12 opacity-0 shrink-0">-</div>
+              
+              {/* AWAY チーム名 */}
+              <div className="flex-1 flex items-end justify-start gap-4">
+                <div className="w-10 h-[50px] rounded-sm mb-1 shadow-sm transition-colors shrink-0" style={{ backgroundColor: teamColors?.away || "#ec4899" }}></div>
+                <div 
+                  className="text-center font-black text-[#0f172a] uppercase drop-shadow-md flex flex-col justify-center items-center" 
+                  style={{ textShadow: "3px 3px 0 #fff, -3px -3px 0 #fff, 3px -3px 0 #fff, -3px 3px 0 #fff, 0 6px 12px rgba(0,0,0,0.2)", letterSpacing: "-0.02em" }}
+                >
+                   <span style={{ fontSize: `${teamNames?.away?.size1 || 100}px`, lineHeight: 1 }}>{teamNames?.away?.line1 || ""}</span>
+                   {(teamNames?.away?.line2) && (
+                      <span style={{ fontSize: `${teamNames?.away?.size2 || 50}px`, lineHeight: 1, marginTop: "4px" }}>{teamNames?.away?.line2}</span>
+                   )}
+                </div>
+                <div className="w-10 h-[50px] rounded-sm mb-1 shadow-sm transition-colors shrink-0" style={{ backgroundColor: teamColors?.away || "#ec4899" }}></div>
+              </div>
+
+            </div>
+          </div>
+
+          {/* 中段：水色のお洒落ベース (得点エリア) */}
+          <div className="h-[40%] w-full bg-gradient-to-r from-cyan-400/90 to-cyan-500/90 shadow-md flex items-center justify-center gap-32 px-12 pointer-events-auto relative backdrop-blur-sm z-20">
+            <div className="flex-1 flex justify-center">
+              <div onClick={!isObsMode ? () => actions.onScoreChange('home', 1) : undefined} className={`text-[14rem] leading-none font-mono font-black text-white drop-shadow-md select-none tabular-nums ${!isObsMode ? 'cursor-pointer hover:text-cyan-100 transition-colors' : ''}`}>
+                 {Number(score?.home || 0)}
+              </div>
+            </div>
+            
+            {/* PK戦の時はハイフンを消して「PK戦」と中央に表示 */}
+            {period === 'PK' ? (
+              <div className="text-7xl font-black tracking-widest text-white drop-shadow-md z-10 whitespace-nowrap">PK戦</div>
+            ) : (
+              <div className="text-8xl font-black text-white/50">-</div>
+            )}
+            
+            <div className="flex-1 flex justify-center">
+              <div onClick={!isObsMode ? () => actions.onScoreChange('away', 1) : undefined} className={`text-[14rem] leading-none font-mono font-black text-white drop-shadow-md select-none tabular-nums ${!isObsMode ? 'cursor-pointer hover:text-cyan-100 transition-colors' : ''}`}>
+                 {Number(score?.away || 0)}
+              </div>
+            </div>
+
+            {/* PK履歴 */}
+            {period === 'PK' && (
+              <div className="absolute -bottom-10 translate-y-1/2 w-full flex justify-between px-12 z-30 pointer-events-auto">
+                <div className="flex-1 flex justify-center max-w-[48%]">
+                   <PkTracker team="home" history={Array.isArray(pkState?.home) ? pkState.home : []} slotsCount={pkSlotsCount} onAdd={(res) => actions.onPkAction('home', res)} isObsMode={isObsMode} />
+                </div>
+                <div className="flex-1 flex justify-center max-w-[48%]">
+                   <PkTracker team="away" history={Array.isArray(pkState?.away) ? pkState.away : []} slotsCount={pkSlotsCount} onAdd={(res) => actions.onPkAction('away', res)} isObsMode={isObsMode} />
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* 下段：タイム表示 (縦書き＆センター配置) */}
+          <div className="flex-1 flex items-center justify-center pointer-events-auto relative w-full h-full">
+            
+            <div className={`absolute inset-0 flex items-center justify-center transition-colors duration-200 ${isOverTime && period !== 'End' && period !== 'PK' ? 'text-pink-600 drop-shadow-[0_2px_10px_rgba(219,39,119,0.3)]' : 'text-[#0f172a] drop-shadow-sm'} ${!isObsMode ? 'cursor-pointer' : ''}`} onClick={!isObsMode && period !== 'End' && period !== 'PK' ? actions.onToggleTimer : undefined}>
+               {/* PK戦の時は下段を空にする、試合終了時は横書きで大きく表示 */}
+               {period === 'PK' ? null : period === 'End' ? (
+                  <span className="text-7xl font-black tracking-widest z-10">試合終了</span>
+               ) : (
+                  <div className="relative flex items-center justify-center">
+                     {/* 縦に文字を積み上げる（100%確実な縦書き） */}
+                     <div className="absolute right-[100%] mr-6 bg-slate-800/10 px-2.5 py-4 rounded-lg flex items-center justify-center shadow-inner">
+                        <div className="flex flex-col items-center justify-center gap-1 text-2xl font-black opacity-80 leading-none">
+                           {String(getPeriodKanji()).split('').map((char, index) => (
+                             <span key={index}>{char}</span>
+                           ))}
+                        </div>
+                     </div>
+                     
+                     {/* センター配置のタイム */}
+                     <span className="text-[6.5rem] font-mono font-black tabular-nums tracking-tighter leading-none z-10">{String(formattedTime)}</span>
+
+                     {/* ロスタイム表示 (タイムの右隣に固定) */}
+                     {additionalTime > 0 && (
+                       <div className="absolute left-[100%] ml-6 bg-pink-600 border border-white text-white font-black text-4xl px-4 py-1 rounded shadow-md z-20">
+                         +{Number(additionalTime)}
+                       </div>
+                     )}
+                  </div>
+               )}
+            </div>
+            
+            {/* 試合終了時の前後半別スコア表示 */}
+            {period === 'End' && (
+              <div className="absolute top-0 -translate-y-1/2 bg-white border-2 border-cyan-400 px-8 py-2 rounded-full flex gap-10 text-[#0f172a] font-bold tracking-widest shadow-md z-30 uppercase">
+                 <div>前半: {Number(firstHalfScore?.home || 0)} - {Number(firstHalfScore?.away || 0)}</div>
+                 {(() => {
+                    const homeArr = Array.isArray(pkState?.home) ? pkState.home : [];
+                    const awayArr = Array.isArray(pkState?.away) ? pkState.away : [];
+                    const homePkScore = homeArr.filter(r => r === 'O').length || 0;
+                    const awayPkScore = awayArr.filter(r => r === 'O').length || 0;
+                    const homeSecondHalf = Number(score?.home || 0) - Number(firstHalfScore?.home || 0);
+                    const awaySecondHalf = Number(score?.away || 0) - Number(firstHalfScore?.away || 0);
+                    
+                    return (
+                      <>
+                        <div>後半: {homeSecondHalf} - {awaySecondHalf}</div>
+                        {(homeArr.length > 0 || awayArr.length > 0) && (
+                          <div className="text-pink-600">PK: {homePkScore} - {awayPkScore}</div>
+                        )}
+                      </>
+                    );
+                 })()}
+              </div>
+            )}
+          </div>
+
+        </div> {/* /コンテンツの配置レイヤー 閉じタグ */}
+
+        {/* Layer 3: Controls (OBSモードでは全非表示＆タップ無効化) */}
+        {!isObsMode && (
+          <>
+            {/* 右上：⚙️設定アイコン */}
+            <button 
+              onClick={actions.onShowSettings} 
+              className="absolute top-6 right-6 w-12 h-12 bg-slate-800/40 hover:bg-slate-800/70 text-white/70 hover:text-white rounded-full border border-white/20 flex items-center justify-center text-xl transition-colors shadow-md z-30 backdrop-blur-sm pointer-events-auto"
+            >
+              ⚙️
+            </button>
+
+            {/* 左下：AT設定＆終了ボタン */}
+            <div className="absolute bottom-6 left-6 flex gap-3 z-30 pointer-events-auto">
+              {period !== 'PK' && (
+                <button onClick={actions.onAddAdditionalTime} className="px-5 py-3 bg-slate-800/40 hover:bg-slate-800/70 border border-white/20 text-white/80 hover:text-white text-sm font-black tracking-widest rounded shadow-md transition-colors uppercase backdrop-blur-sm">
+                   AT
+                </button>
+              )}
+              {period === '1st' && <ConfirmButton label="前半終了" onConfirm={() => actions.onPeriodEnd('1stEnd')} positionClass="relative" />}
+              {period === '2nd' && <ConfirmButton label="後半終了" onConfirm={() => actions.onPeriodEnd('2ndEnd')} positionClass="relative" />}
+              {period === '1stEX' && <ConfirmButton label="前半終了" onConfirm={() => actions.onPeriodEnd('1stExEnd')} positionClass="relative" />}
+              {period === '2ndEX' && <ConfirmButton label="後半終了" onConfirm={() => actions.onPeriodEnd('2ndExEnd')} positionClass="relative" />}
+            </div>
+
+            {/* 右下：UNDO / REDO */}
+            <div className="absolute bottom-6 right-6 flex gap-2 z-30 pointer-events-auto">
+              <button onClick={actions.onUndo} disabled={!historyInfo.canUndo} title="UNDO" className={`w-12 h-12 flex items-center justify-center bg-slate-800/40 hover:bg-slate-800/70 border border-white/20 text-white/80 hover:text-white rounded text-xl font-black transition-colors shadow-md backdrop-blur-sm ${!historyInfo.canUndo?'opacity-30':''}`}>↶</button>
+              <button onClick={actions.onRedo} disabled={!historyInfo.canRedo} title="REDO" className={`w-12 h-12 flex items-center justify-center bg-slate-800/40 hover:bg-slate-800/70 border border-white/20 text-white/80 hover:text-white rounded text-xl font-black transition-colors shadow-md backdrop-blur-sm ${!historyInfo.canRedo?'opacity-30':''}`}>↷</button>
+            </div>
+          </>
+        )}
+
+      </div> {/* /Main Board Container 閉じタグ */}
+    </div>
+  );
+}
+
 
 // ==========================================
 // Settings Modal Component (一括設定画面)
 // ==========================================
 function SettingsModal({ currentData, onSave, onClose, onReset }) {
-  // 修正②⑤：設定用のStateを細分化
   const [tNameText, setTNameText] = useState(currentData?.tournamentName?.text || "");
   const [tNameSize, setTNameSize] = useState(currentData?.tournamentName?.size || 70);
   
@@ -830,7 +850,6 @@ function SettingsModal({ currentData, onSave, onClose, onReset }) {
   const [exTime, setExTime] = useState(currentData?.hasExtraTime || false);
   const [pk, setPk] = useState(currentData?.hasPK || false);
   
-  // タイム計算
   const timerData = currentData?.timer || { isRunning: false, accumulated: 0, startTime: null };
   const currentTotalMs = (timerData.accumulated || 0) + (timerData.isRunning ? Date.now() - (timerData.startTime || Date.now()) : 0);
   const [mins, setMins] = useState(Math.floor(currentTotalMs / 60000) || 0);
@@ -860,7 +879,6 @@ function SettingsModal({ currentData, onSave, onClose, onReset }) {
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose}></div>
-      {/* ▼ 修正：横幅を 500px から 700px (max-w-[95vw]) に広げて見やすくする */}
       <div className="relative bg-white border-t-[6px] border-t-pink-500 p-8 rounded-xl shadow-2xl w-[700px] max-w-[95vw] max-h-[90vh] overflow-y-auto z-10 flex flex-col gap-6">
         
         <div className="flex justify-between items-center border-b border-slate-200 pb-4">
@@ -870,7 +888,6 @@ function SettingsModal({ currentData, onSave, onClose, onReset }) {
           <button onClick={onClose} className="text-slate-400 hover:text-pink-500 transition text-2xl font-black">✕</button>
         </div>
 
-        {/* 試合設定チェックボックス */}
         <div className="flex gap-6 bg-pink-50 p-4 rounded border border-pink-100">
           <label className="flex items-center gap-2 cursor-pointer text-[#0f172a] font-bold tracking-widest">
             <input type="checkbox" checked={exTime} onChange={e => setExTime(e.target.checked)} className="w-5 h-5 accent-pink-500" />
@@ -882,7 +899,6 @@ function SettingsModal({ currentData, onSave, onClose, onReset }) {
           </label>
         </div>
 
-        {/* 修正⑤：大会名の入力（サイズ調整付き） */}
         <div className="flex gap-4">
           <div className="flex flex-col gap-2 flex-[3]">
             <label className="text-slate-500 text-xs font-bold tracking-widest uppercase">大会名</label>
@@ -894,9 +910,7 @@ function SettingsModal({ currentData, onSave, onClose, onReset }) {
           </div>
         </div>
 
-        {/* 修正②：チーム名の詳細入力（行ごとの文字とサイズ） */}
         <div className="flex flex-col gap-4 md:flex-row">
-          {/* HOME */}
           <div className="flex flex-col gap-3 flex-1 p-4 bg-slate-50 rounded-lg border border-slate-200 shadow-sm">
             <label className="text-[#0f172a] text-xs font-black tracking-widest uppercase flex items-center gap-3">
                <input type="color" value={hColor} onChange={e=>setHColor(e.target.value)} className="w-8 h-8 rounded cursor-pointer shrink-0 border border-slate-300 bg-white p-0.5" />
@@ -911,7 +925,6 @@ function SettingsModal({ currentData, onSave, onClose, onReset }) {
                <input type="number" placeholder="サイズ" value={hSize2} onChange={e=>setHSize2(e.target.value)} className="w-16 bg-white text-[#0f172a] px-2 py-2 rounded border border-slate-300 focus:border-pink-500 focus:outline-none font-bold text-sm text-center" />
             </div>
           </div>
-          {/* AWAY */}
           <div className="flex flex-col gap-3 flex-1 p-4 bg-slate-50 rounded-lg border border-slate-200 shadow-sm">
             <label className="text-[#0f172a] text-xs font-black tracking-widest uppercase flex items-center gap-3">
                <input type="color" value={aColor} onChange={e=>setAColor(e.target.value)} className="w-8 h-8 rounded cursor-pointer shrink-0 border border-slate-300 bg-white p-0.5" />
@@ -965,7 +978,6 @@ function SettingsModal({ currentData, onSave, onClose, onReset }) {
                <input type="number" value={secs} onChange={e=>setSecs(e.target.value)} className="w-full bg-slate-50 text-[#0f172a] px-2 py-3 rounded border border-slate-300 focus:border-pink-500 focus:outline-none font-bold text-center text-xl font-mono tabular-nums" />
             </div>
           </div>
-          {/* 修正①：「ロスタイム表記」を「AT表記」に変更 */}
           <div className="flex flex-col gap-2 flex-1">
             <label className="text-slate-500 text-xs font-bold tracking-widest uppercase">AT表記</label>
             <div className="flex items-center gap-2">
@@ -993,13 +1005,13 @@ function SettingsModal({ currentData, onSave, onClose, onReset }) {
 // ==========================================
 // PK Tracker Component
 // ==========================================
-function PkTracker({ team, history = [], slotsCount = 5, onAdd }) {
+function PkTracker({ team, history = [], slotsCount = 5, onAdd, isObsMode = false }) {
   const safeHistory = Array.isArray(history) ? history : [];
   const slots = Array.from({ length: slotsCount });
 
   return (
-    <div className="flex flex-col items-center gap-2 md:gap-3 bg-white/90 px-4 md:px-6 py-4 rounded-2xl shadow-lg border border-slate-200 backdrop-blur-sm w-full max-w-full">
-      <div className="flex items-center justify-center gap-1.5 md:gap-2 flex-wrap">
+    <div className={`flex flex-col items-center gap-3 bg-white/90 px-6 py-4 rounded-2xl shadow-lg border border-slate-200 backdrop-blur-sm w-full max-w-full ${!isObsMode ? 'pointer-events-auto' : ''}`}>
+      <div className="flex items-center justify-center gap-2 flex-wrap">
         {slots.map((_, i) => {
           const res = safeHistory[i];
           let bgClass = "bg-white border-slate-300 text-slate-300";
@@ -1008,16 +1020,18 @@ function PkTracker({ team, history = [], slotsCount = 5, onAdd }) {
           if (res === 'X') { bgClass = "bg-slate-400 border-slate-400 text-white shadow-inner"; icon = "X"; }
           
           return (
-            <div key={i} className={`w-10 h-10 md:w-12 md:h-12 flex items-center justify-center rounded-full border-[3px] font-black text-lg md:text-xl shrink-0 ${bgClass}`}>
+            <div key={i} className={`w-12 h-12 flex items-center justify-center rounded-full border-[3px] font-black text-xl shrink-0 ${bgClass}`}>
               {icon}
             </div>
           );
         })}
       </div>
-      <div className="flex gap-2 md:gap-3 mt-1">
-        <button onClick={() => onAdd('O')} className="px-4 py-2 bg-white hover:bg-slate-50 text-pink-600 font-black border-2 border-pink-200 rounded-lg transition-colors tracking-widest text-xs md:text-sm uppercase shadow-sm">O 成功</button>
-        <button onClick={() => onAdd('X')} className="px-4 py-2 bg-white hover:bg-slate-50 text-slate-500 font-black border-2 border-slate-200 rounded-lg transition-colors tracking-widest text-xs md:text-sm uppercase shadow-sm">X 失敗</button>
-      </div>
+      {!isObsMode && (
+        <div className="flex gap-3 mt-1">
+          <button onClick={() => onAdd('O')} className="px-4 py-2 bg-white hover:bg-slate-50 text-pink-600 font-black border-2 border-pink-200 rounded-lg transition-colors tracking-widest text-sm uppercase shadow-sm">O 成功</button>
+          <button onClick={() => onAdd('X')} className="px-4 py-2 bg-white hover:bg-slate-50 text-slate-500 font-black border-2 border-slate-200 rounded-lg transition-colors tracking-widest text-sm uppercase shadow-sm">X 失敗</button>
+        </div>
+      )}
     </div>
   );
 }
@@ -1032,7 +1046,7 @@ function ConfirmButton({ label, onConfirm, positionClass }) {
   
   return (
     <button onClick={handleClick} className={`z-50 group ${positionClass}`}>
-      <span className={`block px-3 py-2 md:px-5 md:py-3 text-xs md:text-sm font-black tracking-widest rounded border transition-colors duration-200 uppercase shadow-md backdrop-blur-sm ${status === "CONFIRMING" ? 'bg-red-600/90 border-red-500 text-white' : 'bg-slate-800/40 hover:bg-slate-800/70 border-white/20 text-white/80 hover:text-white'}`}>
+      <span className={`block px-5 py-3 text-sm font-black tracking-widest rounded border transition-colors duration-200 uppercase shadow-md backdrop-blur-sm ${status === "CONFIRMING" ? 'bg-red-600/90 border-red-500 text-white' : 'bg-slate-800/40 hover:bg-slate-800/70 border-white/20 text-white/80 hover:text-white'}`}>
         {status === "CONFIRMING" ? `${label}？` : label}
       </span>
     </button>
@@ -1216,7 +1230,6 @@ function MiniBoard({ courtId, onRemove, user }) {
   const currentDuration = (data?.period === '1stEX' || data?.period === '2ndEX') ? data?.extraTimeDuration : data?.halfTimeDuration;
   const { formattedTime, isOverTime } = useTimer(data?.timer, currentDuration);
 
-  // 安全な枠数計算
   const homeKicks = data?.pkState?.home?.length || 0;
   const awayKicks = data?.pkState?.away?.length || 0;
   const maxKicks = Math.max(homeKicks, awayKicks);
@@ -1227,7 +1240,6 @@ function MiniBoard({ courtId, onRemove, user }) {
   return (
     <div className="relative w-[448px] h-[240px] rounded-lg overflow-hidden border border-white/60 shadow-xl group flex flex-col justify-between backdrop-blur-sm">
       
-      {/* 背景グループ */}
       <div className="absolute inset-0 z-0 pointer-events-none">
          <div className="absolute inset-0 flex flex-col">
             <div className="flex-[3] bg-white/60"></div>
@@ -1241,12 +1253,8 @@ function MiniBoard({ courtId, onRemove, user }) {
         className="absolute top-3 right-3 w-8 h-8 bg-white/90 hover:bg-red-600 text-slate-400 hover:text-white rounded flex items-center justify-center font-black z-[200] opacity-0 group-hover:opacity-100 transition-colors border border-slate-200 hover:border-red-500 shadow-md"
       >✕</button>
 
-      {/* コンテンツ層 */}
       <div className="relative z-10 w-full h-full flex flex-col" style={{ isolation: 'isolate' }}>
-         
-         {/* 大会名 & チーム名 */}
          <div className="flex-1 w-full flex flex-col justify-between pt-2 pb-2">
-            {/* 修正⑤：大会名 */}
             <div 
                className="w-full text-center text-[#0f172a] font-black truncate opacity-70 uppercase"
                style={{ fontSize: `${(data.tournamentName?.size || 70) * 0.25}px`, letterSpacing: "normal" }}
@@ -1254,7 +1262,6 @@ function MiniBoard({ courtId, onRemove, user }) {
                {String(data.tournamentName?.text || "MATCH")}
             </div>
             <div className="w-full flex items-end justify-center gap-4 px-4 pb-2">
-               {/* 修正②：MiniBoard HOME チーム名 (縮小スケールで適用) */}
                <div className="flex-1 flex items-end justify-end gap-1.5">
                   <div className="w-2 h-5 rounded-sm mb-0.5 shadow-sm shrink-0" style={{ backgroundColor: data.teamColors?.home || "#0ea5e9" }}></div>
                   <div 
@@ -1269,7 +1276,6 @@ function MiniBoard({ courtId, onRemove, user }) {
                   <div className="w-2 h-5 rounded-sm mb-0.5 shadow-sm shrink-0" style={{ backgroundColor: data.teamColors?.home || "#0ea5e9" }}></div>
                </div>
                <div className="w-2 shrink-0"></div>
-               {/* 修正②：MiniBoard AWAY チーム名 */}
                <div className="flex-1 flex items-end justify-start gap-1.5">
                   <div className="w-2 h-5 rounded-sm mb-0.5 shadow-sm shrink-0" style={{ backgroundColor: data.teamColors?.away || "#ec4899" }}></div>
                   <div 
@@ -1286,7 +1292,6 @@ function MiniBoard({ courtId, onRemove, user }) {
             </div>
          </div>
 
-         {/* 水色帯の得点 */}
          <div className="h-[40%] w-full bg-gradient-to-r from-cyan-400/90 to-cyan-500/90 flex items-center justify-center gap-4 px-4 shadow-inner relative backdrop-blur-sm z-20">
             <div className="flex-1 flex justify-center">
                <div className="text-[5rem] font-mono font-black text-white drop-shadow-md tabular-nums leading-none">{Number(data.score?.home || 0)}</div>
@@ -1302,7 +1307,6 @@ function MiniBoard({ courtId, onRemove, user }) {
                <div className="text-[5rem] font-mono font-black text-white drop-shadow-md tabular-nums leading-none">{Number(data.score?.away || 0)}</div>
             </div>
 
-            {/* PK Status Overlay for MiniBoard */}
             {(data.period === 'PK' || (data.period === 'End' && (homeKicks > 0 || awayKicks > 0))) && (
                <div className="absolute -bottom-5 translate-y-1/2 w-full flex justify-between px-8 z-30 pointer-events-auto">
                  <div className="flex gap-1 bg-white/90 px-2 py-1.5 rounded-xl shadow-md border border-slate-200 backdrop-blur-sm w-[160px] flex-wrap justify-center">
@@ -1329,7 +1333,6 @@ function MiniBoard({ courtId, onRemove, user }) {
             )}
          </div>
 
-         {/* 桃色ベースのタイム */}
          <div className="flex-1 w-full flex justify-center items-center relative">
             <div className={`flex items-baseline gap-3 ${isOverTime && data.period !== 'End' && data.period !== 'PK' ? 'text-pink-600' : 'text-[#0f172a]'}`}>
                {data.period === 'PK' ? null : data.period === 'End' ? (
@@ -1348,7 +1351,6 @@ function MiniBoard({ courtId, onRemove, user }) {
             </div>
             {data.additionalTime > 0 && data.period !== 'PK' && data.period !== 'End' && <span className="absolute right-4 bg-pink-600 border border-white text-white px-2 py-0.5 rounded shadow-sm font-black text-sm">+{Number(data.additionalTime)}</span>}
          
-            {/* 試合終了時スコアバッジ */}
             {data.period === 'End' && (
               <div className="absolute bottom-2 bg-white border border-cyan-400 px-3 py-1 rounded-full flex gap-3 text-[#0f172a] font-bold tracking-widest shadow-md z-30 uppercase text-[9px]">
                  <div>前半: {Number(data.firstHalfScore?.home || 0)} - {Number(data.firstHalfScore?.away || 0)}</div>
@@ -1374,7 +1376,6 @@ function MiniBoard({ courtId, onRemove, user }) {
          </div>
       </div>
       
-      {/* コートIDバッジ */}
       <div className="absolute top-0 left-0 bg-pink-600 text-white text-[10px] md:text-xs font-black px-3 py-1 rounded-br-lg shadow-md uppercase z-30 tracking-widest border-r border-b border-pink-700">
          ID: {String(courtId)}
       </div>
@@ -1383,7 +1384,7 @@ function MiniBoard({ courtId, onRemove, user }) {
 }
 
 // ==========================================
-// ⑤ OBS配信用 観覧専用ビュー
+// ⑤ OBS配信用 観覧専用コンテナ
 // ==========================================
 function ObsScoreboard({ courtId }) {
   const [data, setData] = useState(null);
@@ -1398,16 +1399,11 @@ function ObsScoreboard({ courtId }) {
           if (docSnap.exists() && isMounted) {
              const d = docSnap.data();
              const safeData = { ...d };
-             // ▼ 修正：古いデータ形式（単なる文字列）が来てもエラーにならないように自動変換
-             if(d.tournamentName !== undefined) {
-                safeData.tournamentName = typeof d.tournamentName === 'string' ? { text: d.tournamentName, size: 70 } : d.tournamentName;
-             }
-             if(d.teamNames) {
-                safeData.teamNames = {
-                   home: typeof d.teamNames.home === 'string' ? { line1: d.teamNames.home, line2: "", size1: 100, size2: 50 } : (d.teamNames.home || { line1: "", line2: "", size1: 100, size2: 50 }),
-                   away: typeof d.teamNames.away === 'string' ? { line1: d.teamNames.away, line2: "", size1: 100, size2: 50 } : (d.teamNames.away || { line1: "", line2: "", size1: 100, size2: 50 })
-                };
-             }
+             if(d.tournamentName !== undefined) safeData.tournamentName = typeof d.tournamentName === 'string' ? { text: d.tournamentName, size: 70 } : d.tournamentName;
+             if(d.teamNames) safeData.teamNames = {
+                home: typeof d.teamNames.home === 'string' ? { line1: d.teamNames.home, line2: "", size1: 100, size2: 50 } : (d.teamNames.home || { line1: "", line2: "", size1: 100, size2: 50 }),
+                away: typeof d.teamNames.away === 'string' ? { line1: d.teamNames.away, line2: "", size1: 100, size2: 50 } : (d.teamNames.away || { line1: "", line2: "", size1: 100, size2: 50 })
+             };
              setData(safeData);
           }
          }, (err) => console.error("OBS Error:", err));
@@ -1426,186 +1422,40 @@ function ObsScoreboard({ courtId }) {
   const currentDuration = (data?.period === '1stEX' || data?.period === '2ndEX') ? data?.extraTimeDuration : data?.halfTimeDuration;
   const { formattedTime, isOverTime } = useTimer(data?.timer, currentDuration);
 
-  // 安全な枠数計算
+  if (!data) return null;
+
   const homeKicks = data?.pkState?.home?.length || 0;
   const awayKicks = data?.pkState?.away?.length || 0;
   const maxKicks = Math.max(homeKicks, awayKicks);
   const pkSlotsCount = Math.max(5, homeKicks === awayKicks ? maxKicks + 1 : maxKicks);
 
-  if (!data) return null;
-  
+  const dataProps = {
+    tournamentName: data.tournamentName,
+    teamNames: data.teamNames,
+    teamColors: data.teamColors,
+    score: data.score,
+    period: data.period,
+    pkState: data.pkState,
+    firstHalfScore: data.firstHalfScore,
+    additionalTime: data.additionalTime
+  };
+  const timeDisplay = { formattedTime, isOverTime };
+  const historyInfo = { canUndo: false, canRedo: false };
+  const actions = {}; // OBSは操作不可のため空のアクション
+
   return (
     <>
       <style>{"body { background-color: transparent !important; margin: 0; padding: 0; overflow: hidden; }"}</style>
-      <div style={{ width: '800px', height: '450px' }} className="relative bg-transparent font-sans select-none text-white pointer-events-none transform origin-top-left flex flex-col items-center">
-        
-        {/* ▼ 修正：大会名のサイズをOBSの画面幅に合わせて縮小 (* 0.8) */}
-        <div 
-          className="text-white font-black mb-6 mt-2 uppercase drop-shadow-xl"
-          style={{ 
-             fontSize: `${(data.tournamentName?.size || 70) * 0.8}px`, 
-             letterSpacing: "normal",
-             textShadow: "2px 2px 0 #000, -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 0px 2px 0 #000, 0px -2px 0 #000, 2px 0px 0 #000, -2px 0px 0 #000, 0px 6px 12px rgba(0,0,0,0.5)" 
-          }}
-        >
-             {String(data.tournamentName?.text || "")}
-        </div>
-
-        {/* Obs Container */}
-        <div className="w-full flex-1 rounded-xl border-[3px] border-white/60 shadow-[0_20px_50px_rgba(0,0,0,0.5)] flex flex-col overflow-hidden relative mb-4 backdrop-blur-sm">
-          
-          {/* 背景グループ */}
-          <div className="absolute inset-0 z-0 pointer-events-none">
-             <div className="absolute inset-0 flex flex-col">
-                <div className="flex-[3] bg-white/85"></div>
-                <div className="flex-[1] bg-pink-50/85"></div>
-             </div>
-             {/* ストライプ */}
-             <div className="absolute inset-0 opacity-40" style={{ backgroundImage: "repeating-linear-gradient(-45deg, transparent, transparent 15px, rgba(255,255,255,0.4) 15px, rgba(255,255,255,0.4) 30px)" }}></div>
-          </div>
-
-          <div className="relative z-10 w-full h-full flex flex-col" style={{ isolation: 'isolate' }}>
-            
-            {/* 上段：チーム名 */}
-            <div className="flex-1 flex flex-col justify-end pb-8">
-              <div className="w-full flex items-end justify-center gap-10 px-12">
-                {/* ▼ 修正：OBS HOME チーム名のサイズを縮小 (* 0.8) */}
-                <div className="flex-1 flex items-end justify-end gap-3">
-                   <div className="w-8 h-[50px] rounded-sm mb-1 shadow-sm shrink-0" style={{ backgroundColor: data.teamColors?.home || "#0ea5e9" }}></div>
-                   <div 
-                      className="text-center font-black text-[#0f172a] uppercase drop-shadow-md flex flex-col justify-center items-center" 
-                      style={{ textShadow: "3px 3px 0 #fff, -3px -3px 0 #fff, 3px -3px 0 #fff, -3px 3px 0 #fff, 0 4px 8px rgba(0,0,0,0.15)", letterSpacing: "-0.02em" }}
-                   >
-                      <span style={{ fontSize: `${(data.teamNames?.home?.size1 || 100) * 0.8}px`, lineHeight: 1 }}>{data.teamNames?.home?.line1 || ""}</span>
-                      {(data.teamNames?.home?.line2) && (
-                         <span style={{ fontSize: `${(data.teamNames?.home?.size2 || 50) * 0.8}px`, lineHeight: 1, marginTop: "4px" }}>{data.teamNames?.home?.line2}</span>
-                      )}
-                   </div>
-                   <div className="w-8 h-[50px] rounded-sm mb-1 shadow-sm shrink-0" style={{ backgroundColor: data.teamColors?.home || "#0ea5e9" }}></div>
-                </div>
-                <div className="text-5xl w-8 opacity-0 shrink-0">-</div>
-                {/* ▼ 修正：OBS AWAY チーム名のサイズを縮小 (* 0.8) */}
-                <div className="flex-1 flex items-end justify-start gap-3">
-                   <div className="w-8 h-[50px] rounded-sm mb-1 shadow-sm shrink-0" style={{ backgroundColor: data.teamColors?.away || "#ec4899" }}></div>
-                   <div 
-                      className="text-center font-black text-[#0f172a] uppercase drop-shadow-md flex flex-col justify-center items-center" 
-                      style={{ textShadow: "3px 3px 0 #fff, -3px -3px 0 #fff, 3px -3px 0 #fff, -3px 3px 0 #fff, 0 4px 8px rgba(0,0,0,0.15)", letterSpacing: "-0.02em" }}
-                   >
-                      <span style={{ fontSize: `${(data.teamNames?.away?.size1 || 100) * 0.8}px`, lineHeight: 1 }}>{data.teamNames?.away?.line1 || ""}</span>
-                      {(data.teamNames?.away?.line2) && (
-                         <span style={{ fontSize: `${(data.teamNames?.away?.size2 || 50) * 0.8}px`, lineHeight: 1, marginTop: "4px" }}>{data.teamNames?.away?.line2}</span>
-                      )}
-                   </div>
-                   <div className="w-8 h-[50px] rounded-sm mb-1 shadow-sm shrink-0" style={{ backgroundColor: data.teamColors?.away || "#ec4899" }}></div>
-                </div>
-              </div>
-            </div>
-
-            {/* 中段：水色帯の得点 */}
-            <div className="h-[40%] w-full bg-gradient-to-r from-cyan-400/90 to-cyan-500/90 shadow-md flex items-center justify-center gap-12 px-12 relative backdrop-blur-sm z-20">
-              <div className="flex-1 flex justify-center">
-                <div className="text-[10rem] leading-none font-mono font-black text-white drop-shadow-md tabular-nums">{Number(data.score?.home || 0)}</div>
-              </div>
-              
-              {data.period === 'PK' ? (
-                <div className="text-6xl font-black tracking-widest text-white drop-shadow-md z-10 whitespace-nowrap">PK戦</div>
-              ) : (
-                <div className="text-7xl font-black text-white/50">-</div>
-              )}
-
-              <div className="flex-1 flex justify-center">
-                <div className="text-[10rem] leading-none font-mono font-black text-white drop-shadow-md tabular-nums">{Number(data.score?.away || 0)}</div>
-              </div>
-
-              {/* PK Status Overlay for OBS (折り返し対応) */}
-              {(data.period === 'PK' || (data.period === 'End' && (homeKicks > 0 || awayKicks > 0))) && (
-                 <div className="absolute -bottom-10 translate-y-1/2 w-full flex justify-between px-16 z-30 pointer-events-auto">
-                   <div className="flex gap-2 bg-white/90 px-4 py-3 rounded-2xl shadow-lg border border-slate-200 backdrop-blur-sm max-w-[48%] flex-wrap justify-center">
-                      {Array.from({ length: pkSlotsCount }).map((_, i) => {
-                         const res = data.pkState?.home?.[i];
-                         let bgClass = "bg-white border-slate-300 text-slate-300";
-                         let icon = "-";
-                         if (res === 'O') { bgClass = "bg-pink-500 border-pink-500 text-white shadow-md"; icon = "O"; }
-                         if (res === 'X') { bgClass = "bg-slate-400 border-slate-400 text-white shadow-inner"; icon = "X"; }
-                         return <div key={i} className={`w-10 h-10 md:w-12 md:h-12 rounded-full border-[3px] flex justify-center items-center font-black text-xl shrink-0 ${bgClass}`}>{icon}</div>
-                      })}
-                   </div>
-                   <div className="flex gap-2 bg-white/90 px-4 py-3 rounded-2xl shadow-lg border border-slate-200 backdrop-blur-sm max-w-[48%] flex-wrap justify-center">
-                      {Array.from({ length: pkSlotsCount }).map((_, i) => {
-                         const res = data.pkState?.away?.[i];
-                         let bgClass = "bg-white border-slate-300 text-slate-300";
-                         let icon = "-";
-                         if (res === 'O') { bgClass = "bg-pink-500 border-pink-500 text-white shadow-md"; icon = "O"; }
-                         if (res === 'X') { bgClass = "bg-slate-400 border-slate-400 text-white shadow-inner"; icon = "X"; }
-                         return <div key={i} className={`w-10 h-10 md:w-12 md:h-12 rounded-full border-[3px] flex justify-center items-center font-black text-xl shrink-0 ${bgClass}`}>{icon}</div>
-                      })}
-                   </div>
-                 </div>
-              )}
-            </div>
-
-            {/* 下段：桃色背景のタイム (縦書き＆センター配置) */}
-            <div className="flex-1 flex items-center justify-center relative w-full h-full">
-               
-               <div className={`absolute inset-0 flex items-center justify-center transition-colors duration-200 ${isOverTime && data.period !== 'End' && data.period !== 'PK' ? 'text-pink-600 drop-shadow-[0_2px_10px_rgba(219,39,119,0.3)]' : 'text-[#0f172a] drop-shadow-sm'}`}>
-                  {/* PK戦の時は下段を空にする、試合終了時は横書きで大きく表示 (OBS側) */}
-                  {data.period === 'PK' ? null : data.period === 'End' ? (
-                     <span className="text-6xl font-black tracking-widest z-10">試合終了</span>
-                  ) : (
-                     <div className="relative flex items-center justify-center">
-                        {/* 縦に文字を積み上げる（100%確実な縦書き / OBS側） */}
-                        <div className="absolute right-[100%] mr-5 bg-slate-800/10 px-2.5 py-4 rounded-lg flex items-center justify-center shadow-inner">
-                           <div className="flex flex-col items-center justify-center gap-1 text-2xl font-black opacity-80 leading-none">
-                              {(data.period === '1st' ? '前半' : 
-                               data.period === '2nd' ? '後半' : 
-                               data.period === '1stEX' ? '延長前半' : 
-                               data.period === '2ndEX' ? '延長後半' : '終了').split('').map((char, index) => (
-                                 <span key={index}>{char}</span>
-                              ))}
-                           </div>
-                        </div>
-                        
-                        {/* センター配置のタイム */}
-                        <span className="text-[5.5rem] font-mono font-black tabular-nums tracking-tighter leading-none z-10">{String(formattedTime)}</span>
-
-                        {/* ロスタイム表示 (タイムの右隣に固定) */}
-                        {data.additionalTime > 0 && (
-                          <div className="absolute left-[100%] ml-5 bg-pink-600 border border-white text-white font-black text-4xl px-4 py-1 rounded shadow-md z-20">
-                            +{Number(data.additionalTime)}
-                          </div>
-                        )}
-                     </div>
-                  )}
-               </div>
-
-               {/* 試合終了時の前後半別スコア表示 (OBS用) */}
-               {data.period === 'End' && (
-                 <div className="absolute top-0 -translate-y-1/2 bg-white border-2 border-cyan-400 px-10 py-3 rounded-full flex gap-12 text-[#0f172a] font-bold tracking-widest shadow-md z-30 uppercase text-xl">
-                    <div>前半: {Number(data.firstHalfScore?.home || 0)} - {Number(data.firstHalfScore?.away || 0)}</div>
-                    {(() => {
-                       const homeArr = Array.isArray(data.pkState?.home) ? data.pkState.home : [];
-                       const awayArr = Array.isArray(data.pkState?.away) ? data.pkState.away : [];
-                       const homePkScore = homeArr.filter(r => r === 'O').length || 0;
-                       const awayPkScore = awayArr.filter(r => r === 'O').length || 0;
-                       const homeSecondHalf = Number(data.score?.home || 0) - Number(data.firstHalfScore?.home || 0);
-                       const awaySecondHalf = Number(data.score?.away || 0) - Number(data.firstHalfScore?.away || 0);
-                       
-                       return (
-                         <>
-                           <div>後半: {homeSecondHalf} - {awaySecondHalf}</div>
-                           {(homeArr.length > 0 || awayArr.length > 0) && (
-                             <div className="text-pink-600">PK: {homePkScore} - {awayPkScore}</div>
-                           )}
-                         </>
-                       );
-                    })()}
-                 </div>
-               )}
-            </div>
-
-          </div>
-
-        </div>
+      {/* OBSの幅に合わせて800px幅の親枠を用意し、はみ出ないように表示 */}
+      <div style={{ width: '800px', height: 'auto', minHeight: '450px' }} className="relative bg-transparent overflow-visible">
+         <ScoreboardUI 
+           data={dataProps} 
+           timeDisplay={timeDisplay} 
+           pkSlotsCount={pkSlotsCount} 
+           historyInfo={historyInfo} 
+           actions={actions} 
+           isObsMode={true} 
+         />
       </div>
     </>
   );
