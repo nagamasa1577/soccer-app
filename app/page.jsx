@@ -279,18 +279,19 @@ function MainController() {
   return (
     <div className="fixed inset-0 bg-black overflow-hidden font-sans">
       
-      {/* メニューボタン */}
+      {/* ▼ 修正③：メニューボタンを極限まで右上端に寄せて被りを回避 */}
       <button 
         onClick={() => setIsMenuOpen(!isMenuOpen)}
-        className="absolute top-4 right-4 z-[100] w-12 h-12 bg-slate-800/60 rounded border border-white/10 flex items-center justify-center text-white/80 hover:bg-slate-700 hover:text-white transition-colors shadow-lg backdrop-blur-md"
+        className="absolute top-1 right-1 z-[100] w-10 h-10 bg-slate-800/60 rounded border border-white/10 flex items-center justify-center text-white/80 hover:bg-slate-700 hover:text-white transition-colors shadow-lg backdrop-blur-md"
       >
         <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 20 20" fill="currentColor">
           <path fillRule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287-.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" />
         </svg>
       </button>
 
+      {/* ▼ 修正③：開くメニュー本体も右上端を基準にする */}
       {isMenuOpen && (
-        <div className="absolute top-20 right-4 z-[100] w-80 bg-white p-6 rounded-lg border-2 border-slate-200 shadow-2xl flex flex-col gap-4">
+        <div className="absolute top-14 right-1 z-[100] w-80 bg-white p-6 rounded-lg border-2 border-slate-200 shadow-2xl flex flex-col gap-4">
           <div className="flex items-center justify-between pb-4 border-b border-slate-200">
             <div className="flex items-center gap-2 overflow-hidden">
               <div className="w-2 h-2 rounded bg-green-500 shadow-sm flex-shrink-0"></div>
@@ -408,10 +409,10 @@ function Scoreboard({ user, courtId }) {
   const currentDuration = (period === '1stEX' || period === '2ndEX') ? extraTimeDuration : halfTimeDuration;
   const { formattedTime, isOverTime } = useTimer(timer, currentDuration);
 
-  // Undo/Redo Logic
+  // ▼ 修正④：UNDO/REDOの履歴から timer と additionalTime(AT) を除外
   const getCurrentStateSnapshot = () => ({ 
     tournamentName, halfTimeDuration, extraTimeDuration, hasExtraTime, hasPK, period, score: { ...score }, teamNames: { ...teamNames }, teamColors: { ...teamColors },
-    timer: { ...timer }, additionalTime, pkState: { home: [...(pkState?.home||[])], away: [...(pkState?.away||[])] },
+    pkState: { home: [...(pkState?.home||[])], away: [...(pkState?.away||[])] },
     firstHalfScore: { ...firstHalfScore }
   });
   
@@ -424,8 +425,8 @@ function Scoreboard({ user, courtId }) {
     setTournamentName(prev.tournamentName); setHalfTimeDuration(prev.halfTimeDuration); setExtraTimeDuration(prev.extraTimeDuration);
     setHasExtraTime(prev.hasExtraTime); setHasPK(prev.hasPK);
     setPeriod(prev.period); setScore(prev.score); setTeamNames(prev.teamNames); setTeamColors(prev.teamColors);
-    setTimer({ ...prev.timer, isRunning: false, startTime: null }); 
-    setAdditionalTime(prev.additionalTime); setPkState(prev.pkState); setFirstHalfScore(prev.firstHalfScore);
+    // タイマーとATは復元せずそのまま進行させる
+    setPkState(prev.pkState); setFirstHalfScore(prev.firstHalfScore);
     setHistory(h => h.slice(0, -1)); 
   };
   
@@ -436,8 +437,8 @@ function Scoreboard({ user, courtId }) {
     setTournamentName(next.tournamentName); setHalfTimeDuration(next.halfTimeDuration); setExtraTimeDuration(next.extraTimeDuration);
     setHasExtraTime(next.hasExtraTime); setHasPK(next.hasPK);
     setPeriod(next.period); setScore(next.score); setTeamNames(next.teamNames); setTeamColors(next.teamColors);
-    setTimer({ ...next.timer, isRunning: false, startTime: null }); 
-    setAdditionalTime(next.additionalTime); setPkState(next.pkState); setFirstHalfScore(next.firstHalfScore);
+    // タイマーとATは復元せずそのまま進行させる
+    setPkState(next.pkState); setFirstHalfScore(next.firstHalfScore);
     setFuture(f => f.slice(0, -1)); 
   };
 
@@ -594,31 +595,49 @@ function Scoreboard({ user, courtId }) {
               <div className="flex-1 flex flex-col justify-end pb-8 pointer-events-auto">
                 <div className="w-full flex items-end justify-center gap-4 md:gap-12 px-12">
                   
-                  {/* HOME */}
+                  {/* ▼ 修正②：HOME チーム名の文字数に応じた自動サイズ・2段組調整 */}
                   <div className="flex-1 flex items-end justify-end gap-2 md:gap-4">
-                    <div className="w-6 h-8 md:w-10 md:h-[50px] rounded-sm mb-1 shadow-sm transition-colors" style={{ backgroundColor: teamColors?.home || "#0ea5e9" }}></div>
+                    <div className="w-6 h-8 md:w-10 md:h-[50px] rounded-sm mb-1 shadow-sm transition-colors shrink-0" style={{ backgroundColor: teamColors?.home || "#0ea5e9" }}></div>
                     <div 
-                      className="text-center font-black text-6xl md:text-[100px] text-[#0f172a] uppercase leading-none drop-shadow-md" 
+                      className={`text-center font-black text-[#0f172a] uppercase drop-shadow-md flex flex-col justify-center ${
+                         (teamNames?.home || "").length <= 2 ? "text-6xl md:text-[100px] leading-none" : 
+                         (teamNames?.home || "").length <= 4 ? "text-5xl md:text-[80px] leading-none" : 
+                         "text-4xl md:text-[55px] leading-tight"
+                      }`} 
                       style={{ textShadow: "3px 3px 0 #fff, -3px -3px 0 #fff, 3px -3px 0 #fff, -3px 3px 0 #fff, 0 6px 12px rgba(0,0,0,0.2)", letterSpacing: "-0.02em" }}
                     >
-                       {String(teamNames?.home || "")}
+                       {(teamNames?.home || "").length >= 5 ? (
+                          <>
+                             <span>{String(teamNames?.home || "").slice(0, Math.ceil(String(teamNames?.home || "").length / 2))}</span>
+                             <span>{String(teamNames?.home || "").slice(Math.ceil(String(teamNames?.home || "").length / 2))}</span>
+                          </>
+                       ) : String(teamNames?.home || "")}
                     </div>
-                    <div className="w-6 h-8 md:w-10 md:h-[50px] rounded-sm mb-1 shadow-sm transition-colors" style={{ backgroundColor: teamColors?.home || "#0ea5e9" }}></div>
+                    <div className="w-6 h-8 md:w-10 md:h-[50px] rounded-sm mb-1 shadow-sm transition-colors shrink-0" style={{ backgroundColor: teamColors?.home || "#0ea5e9" }}></div>
                   </div>
                   
                   {/* VS or - */}
-                  <div className="text-5xl w-8 md:w-12 opacity-0">-</div>
+                  <div className="text-5xl w-8 md:w-12 opacity-0 shrink-0">-</div>
                   
-                  {/* AWAY */}
+                  {/* ▼ 修正②：AWAY チーム名の文字数に応じた自動サイズ・2段組調整 */}
                   <div className="flex-1 flex items-end justify-start gap-2 md:gap-4">
-                    <div className="w-6 h-8 md:w-10 md:h-[50px] rounded-sm mb-1 shadow-sm transition-colors" style={{ backgroundColor: teamColors?.away || "#ec4899" }}></div>
+                    <div className="w-6 h-8 md:w-10 md:h-[50px] rounded-sm mb-1 shadow-sm transition-colors shrink-0" style={{ backgroundColor: teamColors?.away || "#ec4899" }}></div>
                     <div 
-                      className="text-center font-black text-6xl md:text-[100px] text-[#0f172a] uppercase leading-none drop-shadow-md" 
+                      className={`text-center font-black text-[#0f172a] uppercase drop-shadow-md flex flex-col justify-center ${
+                         (teamNames?.away || "").length <= 2 ? "text-6xl md:text-[100px] leading-none" : 
+                         (teamNames?.away || "").length <= 4 ? "text-5xl md:text-[80px] leading-none" : 
+                         "text-4xl md:text-[55px] leading-tight"
+                      }`} 
                       style={{ textShadow: "3px 3px 0 #fff, -3px -3px 0 #fff, 3px -3px 0 #fff, -3px 3px 0 #fff, 0 6px 12px rgba(0,0,0,0.2)", letterSpacing: "-0.02em" }}
                     >
-                       {String(teamNames?.away || "")}
+                       {(teamNames?.away || "").length >= 5 ? (
+                          <>
+                             <span>{String(teamNames?.away || "").slice(0, Math.ceil(String(teamNames?.away || "").length / 2))}</span>
+                             <span>{String(teamNames?.away || "").slice(Math.ceil(String(teamNames?.away || "").length / 2))}</span>
+                          </>
+                       ) : String(teamNames?.away || "")}
                     </div>
-                    <div className="w-6 h-8 md:w-10 md:h-[50px] rounded-sm mb-1 shadow-sm transition-colors" style={{ backgroundColor: teamColors?.away || "#ec4899" }}></div>
+                    <div className="w-6 h-8 md:w-10 md:h-[50px] rounded-sm mb-1 shadow-sm transition-colors shrink-0" style={{ backgroundColor: teamColors?.away || "#ec4899" }}></div>
                   </div>
 
                 </div>
@@ -726,11 +745,11 @@ function Scoreboard({ user, courtId }) {
               ⚙️
             </button>
 
-            {/* 左下：ロスタイム設定＆終了ボタン (スマホ時はマージンとサイズを縮小) */}
+            {/* ▼ 修正①：左下：AT設定＆終了ボタン */}
             <div className="absolute bottom-4 left-4 md:bottom-6 md:left-6 flex gap-2 md:gap-3 z-30">
               {period !== 'PK' && (
                 <button onClick={() => { saveHistory(); setAdditionalTime(prev => prev + 1); }} className="px-3 py-2 md:px-5 md:py-3 bg-slate-800/40 hover:bg-slate-800/70 border border-white/20 text-white/80 hover:text-white text-xs md:text-sm font-black tracking-widest rounded shadow-md transition-colors uppercase backdrop-blur-sm">
-                   ロスタイム
+                   AT
                 </button>
               )}
               {period === '1st' && <ConfirmButton label="前半終了" onConfirm={() => handlePeriodEnd('1stEnd')} positionClass="relative" />}
@@ -900,8 +919,9 @@ function SettingsModal({ currentData, onSave, onClose, onReset }) {
                <input type="number" value={secs} onChange={e=>setSecs(e.target.value)} className="w-full bg-slate-50 text-[#0f172a] px-2 py-3 rounded border border-slate-300 focus:border-pink-500 focus:outline-none font-bold text-center text-xl font-mono tabular-nums" />
             </div>
           </div>
+          {/* ▼ 修正①：「ロスタイム表記」を「AT表記」に変更 */}
           <div className="flex flex-col gap-2 flex-1">
-            <label className="text-slate-500 text-xs font-bold tracking-widest uppercase">ロスタイム表記</label>
+            <label className="text-slate-500 text-xs font-bold tracking-widest uppercase">AT表記</label>
             <div className="flex items-center gap-2">
                <span className="text-slate-500 font-bold">+</span>
                <input type="number" value={addTime} onChange={e=>setAddTime(e.target.value)} className="w-full bg-slate-50 text-[#0f172a] px-4 py-3 rounded border border-slate-300 focus:border-pink-500 focus:outline-none font-bold text-center text-xl font-mono tabular-nums" />
@@ -1184,16 +1204,46 @@ function MiniBoard({ courtId, onRemove, user }) {
                {String(data.tournamentName || "MATCH")}
             </div>
             <div className="w-full flex items-end justify-center gap-4 px-4 pb-2">
+               {/* ▼ 修正②：MiniBoard HOME チーム名の自動サイズ・2段組調整 */}
                <div className="flex-1 flex items-end justify-end gap-1.5">
-                  <div className="w-2 h-5 rounded-sm mb-0.5 shadow-sm" style={{ backgroundColor: data.teamColors?.home || "#0ea5e9" }}></div>
-                  <div className="text-center font-black text-3xl text-[#0f172a] uppercase truncate leading-none" style={{ textShadow: "1px 1px 0 #fff, -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff" }}>{String(data.teamNames?.home || "")}</div>
-                  <div className="w-2 h-5 rounded-sm mb-0.5 shadow-sm" style={{ backgroundColor: data.teamColors?.home || "#0ea5e9" }}></div>
+                  <div className="w-2 h-5 rounded-sm mb-0.5 shadow-sm shrink-0" style={{ backgroundColor: data.teamColors?.home || "#0ea5e9" }}></div>
+                  <div 
+                     className={`text-center font-black text-[#0f172a] uppercase drop-shadow-sm flex flex-col justify-center ${
+                        (data.teamNames?.home || "").length <= 2 ? "text-3xl leading-none" : 
+                        (data.teamNames?.home || "").length <= 4 ? "text-2xl leading-none" : 
+                        "text-[16px] leading-[1.1]"
+                     }`} 
+                     style={{ textShadow: "1px 1px 0 #fff, -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff" }}
+                  >
+                     {(data.teamNames?.home || "").length >= 5 ? (
+                        <>
+                           <span>{String(data.teamNames?.home || "").slice(0, Math.ceil(String(data.teamNames?.home || "").length / 2))}</span>
+                           <span>{String(data.teamNames?.home || "").slice(Math.ceil(String(data.teamNames?.home || "").length / 2))}</span>
+                        </>
+                     ) : String(data.teamNames?.home || "")}
+                  </div>
+                  <div className="w-2 h-5 rounded-sm mb-0.5 shadow-sm shrink-0" style={{ backgroundColor: data.teamColors?.home || "#0ea5e9" }}></div>
                </div>
-               <div className="w-2"></div>
+               <div className="w-2 shrink-0"></div>
+               {/* ▼ 修正②：MiniBoard AWAY チーム名の自動サイズ・2段組調整 */}
                <div className="flex-1 flex items-end justify-start gap-1.5">
-                  <div className="w-2 h-5 rounded-sm mb-0.5 shadow-sm" style={{ backgroundColor: data.teamColors?.away || "#ec4899" }}></div>
-                  <div className="text-center font-black text-3xl text-[#0f172a] uppercase truncate leading-none" style={{ textShadow: "1px 1px 0 #fff, -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff" }}>{String(data.teamNames?.away || "")}</div>
-                  <div className="w-2 h-5 rounded-sm mb-0.5 shadow-sm" style={{ backgroundColor: data.teamColors?.away || "#ec4899" }}></div>
+                  <div className="w-2 h-5 rounded-sm mb-0.5 shadow-sm shrink-0" style={{ backgroundColor: data.teamColors?.away || "#ec4899" }}></div>
+                  <div 
+                     className={`text-center font-black text-[#0f172a] uppercase drop-shadow-sm flex flex-col justify-center ${
+                        (data.teamNames?.away || "").length <= 2 ? "text-3xl leading-none" : 
+                        (data.teamNames?.away || "").length <= 4 ? "text-2xl leading-none" : 
+                        "text-[16px] leading-[1.1]"
+                     }`} 
+                     style={{ textShadow: "1px 1px 0 #fff, -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff" }}
+                  >
+                     {(data.teamNames?.away || "").length >= 5 ? (
+                        <>
+                           <span>{String(data.teamNames?.away || "").slice(0, Math.ceil(String(data.teamNames?.away || "").length / 2))}</span>
+                           <span>{String(data.teamNames?.away || "").slice(Math.ceil(String(data.teamNames?.away || "").length / 2))}</span>
+                        </>
+                     ) : String(data.teamNames?.away || "")}
+                  </div>
+                  <div className="w-2 h-5 rounded-sm mb-0.5 shadow-sm shrink-0" style={{ backgroundColor: data.teamColors?.away || "#ec4899" }}></div>
                </div>
             </div>
          </div>
@@ -1363,16 +1413,46 @@ function ObsScoreboard({ courtId }) {
             {/* 上段：チーム名 */}
             <div className="flex-1 flex flex-col justify-end pb-8">
               <div className="w-full flex items-end justify-center gap-10 px-12">
+                {/* ▼ 修正②：OBS HOME チーム名の自動サイズ・2段組調整 */}
                 <div className="flex-1 flex items-end justify-end gap-3">
-                   <div className="w-8 h-[50px] rounded-sm mb-1 shadow-sm" style={{ backgroundColor: data.teamColors?.home || "#0ea5e9" }}></div>
-                   <div className="text-center font-black text-7xl text-[#0f172a] uppercase leading-none" style={{ textShadow: "3px 3px 0 #fff, -3px -3px 0 #fff, 3px -3px 0 #fff, -3px 3px 0 #fff, 0 4px 8px rgba(0,0,0,0.15)" }}>{String(data.teamNames?.home || "")}</div>
-                   <div className="w-8 h-[50px] rounded-sm mb-1 shadow-sm" style={{ backgroundColor: data.teamColors?.home || "#0ea5e9" }}></div>
+                   <div className="w-8 h-[50px] rounded-sm mb-1 shadow-sm shrink-0" style={{ backgroundColor: data.teamColors?.home || "#0ea5e9" }}></div>
+                   <div 
+                      className={`text-center font-black text-[#0f172a] uppercase drop-shadow-md flex flex-col justify-center ${
+                         (data.teamNames?.home || "").length <= 2 ? "text-7xl leading-none" : 
+                         (data.teamNames?.home || "").length <= 4 ? "text-6xl leading-none" : 
+                         "text-[45px] leading-tight"
+                      }`} 
+                      style={{ textShadow: "3px 3px 0 #fff, -3px -3px 0 #fff, 3px -3px 0 #fff, -3px 3px 0 #fff, 0 4px 8px rgba(0,0,0,0.15)" }}
+                   >
+                      {(data.teamNames?.home || "").length >= 5 ? (
+                         <>
+                            <span>{String(data.teamNames?.home || "").slice(0, Math.ceil(String(data.teamNames?.home || "").length / 2))}</span>
+                            <span>{String(data.teamNames?.home || "").slice(Math.ceil(String(data.teamNames?.home || "").length / 2))}</span>
+                         </>
+                      ) : String(data.teamNames?.home || "")}
+                   </div>
+                   <div className="w-8 h-[50px] rounded-sm mb-1 shadow-sm shrink-0" style={{ backgroundColor: data.teamColors?.home || "#0ea5e9" }}></div>
                 </div>
-                <div className="text-5xl w-8 opacity-0">-</div>
+                <div className="text-5xl w-8 opacity-0 shrink-0">-</div>
+                {/* ▼ 修正②：OBS AWAY チーム名の自動サイズ・2段組調整 */}
                 <div className="flex-1 flex items-end justify-start gap-3">
-                   <div className="w-8 h-[50px] rounded-sm mb-1 shadow-sm" style={{ backgroundColor: data.teamColors?.away || "#ec4899" }}></div>
-                   <div className="text-center font-black text-7xl text-[#0f172a] uppercase leading-none" style={{ textShadow: "3px 3px 0 #fff, -3px -3px 0 #fff, 3px -3px 0 #fff, -3px 3px 0 #fff, 0 4px 8px rgba(0,0,0,0.15)" }}>{String(data.teamNames?.away || "")}</div>
-                   <div className="w-8 h-[50px] rounded-sm mb-1 shadow-sm" style={{ backgroundColor: data.teamColors?.away || "#ec4899" }}></div>
+                   <div className="w-8 h-[50px] rounded-sm mb-1 shadow-sm shrink-0" style={{ backgroundColor: data.teamColors?.away || "#ec4899" }}></div>
+                   <div 
+                      className={`text-center font-black text-[#0f172a] uppercase drop-shadow-md flex flex-col justify-center ${
+                         (data.teamNames?.away || "").length <= 2 ? "text-7xl leading-none" : 
+                         (data.teamNames?.away || "").length <= 4 ? "text-6xl leading-none" : 
+                         "text-[45px] leading-tight"
+                      }`} 
+                      style={{ textShadow: "3px 3px 0 #fff, -3px -3px 0 #fff, 3px -3px 0 #fff, -3px 3px 0 #fff, 0 4px 8px rgba(0,0,0,0.15)" }}
+                   >
+                      {(data.teamNames?.away || "").length >= 5 ? (
+                         <>
+                            <span>{String(data.teamNames?.away || "").slice(0, Math.ceil(String(data.teamNames?.away || "").length / 2))}</span>
+                            <span>{String(data.teamNames?.away || "").slice(Math.ceil(String(data.teamNames?.away || "").length / 2))}</span>
+                         </>
+                      ) : String(data.teamNames?.away || "")}
+                   </div>
+                   <div className="w-8 h-[50px] rounded-sm mb-1 shadow-sm shrink-0" style={{ backgroundColor: data.teamColors?.away || "#ec4899" }}></div>
                 </div>
               </div>
             </div>
