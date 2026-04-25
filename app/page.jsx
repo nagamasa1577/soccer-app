@@ -860,7 +860,8 @@ function SettingsModal({ currentData, onSave, onClose, onReset }) {
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose}></div>
-      <div className="relative bg-white border-t-[6px] border-t-pink-500 p-8 rounded-xl shadow-2xl w-[500px] max-w-full max-h-[90vh] overflow-y-auto z-10 flex flex-col gap-6">
+      {/* ▼ 修正：横幅を 500px から 700px (max-w-[95vw]) に広げて見やすくする */}
+      <div className="relative bg-white border-t-[6px] border-t-pink-500 p-8 rounded-xl shadow-2xl w-[700px] max-w-[95vw] max-h-[90vh] overflow-y-auto z-10 flex flex-col gap-6">
         
         <div className="flex justify-between items-center border-b border-slate-200 pb-4">
           <h2 className="text-[#0f172a] font-black tracking-widest text-2xl flex items-center gap-2 uppercase">
@@ -1394,7 +1395,21 @@ function ObsScoreboard({ courtId }) {
       try {
          await signInAnonymously(auth);
          const unsub = onSnapshot(doc(db, `artifacts/${globalAppId}/public/data/courts`, courtId), (docSnap) => {
-          if (docSnap.exists() && isMounted) setData(docSnap.data());
+          if (docSnap.exists() && isMounted) {
+             const d = docSnap.data();
+             const safeData = { ...d };
+             // ▼ 修正：古いデータ形式（単なる文字列）が来てもエラーにならないように自動変換
+             if(d.tournamentName !== undefined) {
+                safeData.tournamentName = typeof d.tournamentName === 'string' ? { text: d.tournamentName, size: 70 } : d.tournamentName;
+             }
+             if(d.teamNames) {
+                safeData.teamNames = {
+                   home: typeof d.teamNames.home === 'string' ? { line1: d.teamNames.home, line2: "", size1: 100, size2: 50 } : (d.teamNames.home || { line1: "", line2: "", size1: 100, size2: 50 }),
+                   away: typeof d.teamNames.away === 'string' ? { line1: d.teamNames.away, line2: "", size1: 100, size2: 50 } : (d.teamNames.away || { line1: "", line2: "", size1: 100, size2: 50 })
+                };
+             }
+             setData(safeData);
+          }
          }, (err) => console.error("OBS Error:", err));
          return () => {
            isMounted = false;
@@ -1424,11 +1439,11 @@ function ObsScoreboard({ courtId }) {
       <style>{"body { background-color: transparent !important; margin: 0; padding: 0; overflow: hidden; }"}</style>
       <div style={{ width: '800px', height: '450px' }} className="relative bg-transparent font-sans select-none text-white pointer-events-none transform origin-top-left flex flex-col items-center">
         
-        {/* 修正⑤：大会名（字間を自然にし、サイズを設定から適用） */}
+        {/* ▼ 修正：大会名のサイズをOBSの画面幅に合わせて縮小 (* 0.8) */}
         <div 
           className="text-white font-black mb-6 mt-2 uppercase drop-shadow-xl"
           style={{ 
-             fontSize: `${data.tournamentName?.size || 70}px`, 
+             fontSize: `${(data.tournamentName?.size || 70) * 0.8}px`, 
              letterSpacing: "normal",
              textShadow: "2px 2px 0 #000, -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 0px 2px 0 #000, 0px -2px 0 #000, 2px 0px 0 #000, -2px 0px 0 #000, 0px 6px 12px rgba(0,0,0,0.5)" 
           }}
@@ -1454,31 +1469,31 @@ function ObsScoreboard({ courtId }) {
             {/* 上段：チーム名 */}
             <div className="flex-1 flex flex-col justify-end pb-8">
               <div className="w-full flex items-end justify-center gap-10 px-12">
-                {/* 修正②：OBS HOME チーム名のマニュアル2段組・サイズ調整 */}
+                {/* ▼ 修正：OBS HOME チーム名のサイズを縮小 (* 0.8) */}
                 <div className="flex-1 flex items-end justify-end gap-3">
                    <div className="w-8 h-[50px] rounded-sm mb-1 shadow-sm shrink-0" style={{ backgroundColor: data.teamColors?.home || "#0ea5e9" }}></div>
                    <div 
                       className="text-center font-black text-[#0f172a] uppercase drop-shadow-md flex flex-col justify-center items-center" 
                       style={{ textShadow: "3px 3px 0 #fff, -3px -3px 0 #fff, 3px -3px 0 #fff, -3px 3px 0 #fff, 0 4px 8px rgba(0,0,0,0.15)", letterSpacing: "-0.02em" }}
                    >
-                      <span style={{ fontSize: `${data.teamNames?.home?.size1 || 100}px`, lineHeight: 1 }}>{data.teamNames?.home?.line1 || ""}</span>
+                      <span style={{ fontSize: `${(data.teamNames?.home?.size1 || 100) * 0.8}px`, lineHeight: 1 }}>{data.teamNames?.home?.line1 || ""}</span>
                       {(data.teamNames?.home?.line2) && (
-                         <span style={{ fontSize: `${data.teamNames?.home?.size2 || 50}px`, lineHeight: 1, marginTop: "4px" }}>{data.teamNames?.home?.line2}</span>
+                         <span style={{ fontSize: `${(data.teamNames?.home?.size2 || 50) * 0.8}px`, lineHeight: 1, marginTop: "4px" }}>{data.teamNames?.home?.line2}</span>
                       )}
                    </div>
                    <div className="w-8 h-[50px] rounded-sm mb-1 shadow-sm shrink-0" style={{ backgroundColor: data.teamColors?.home || "#0ea5e9" }}></div>
                 </div>
                 <div className="text-5xl w-8 opacity-0 shrink-0">-</div>
-                {/* 修正②：OBS AWAY チーム名のマニュアル2段組・サイズ調整 */}
+                {/* ▼ 修正：OBS AWAY チーム名のサイズを縮小 (* 0.8) */}
                 <div className="flex-1 flex items-end justify-start gap-3">
                    <div className="w-8 h-[50px] rounded-sm mb-1 shadow-sm shrink-0" style={{ backgroundColor: data.teamColors?.away || "#ec4899" }}></div>
                    <div 
                       className="text-center font-black text-[#0f172a] uppercase drop-shadow-md flex flex-col justify-center items-center" 
                       style={{ textShadow: "3px 3px 0 #fff, -3px -3px 0 #fff, 3px -3px 0 #fff, -3px 3px 0 #fff, 0 4px 8px rgba(0,0,0,0.15)", letterSpacing: "-0.02em" }}
                    >
-                      <span style={{ fontSize: `${data.teamNames?.away?.size1 || 100}px`, lineHeight: 1 }}>{data.teamNames?.away?.line1 || ""}</span>
+                      <span style={{ fontSize: `${(data.teamNames?.away?.size1 || 100) * 0.8}px`, lineHeight: 1 }}>{data.teamNames?.away?.line1 || ""}</span>
                       {(data.teamNames?.away?.line2) && (
-                         <span style={{ fontSize: `${data.teamNames?.away?.size2 || 50}px`, lineHeight: 1, marginTop: "4px" }}>{data.teamNames?.away?.line2}</span>
+                         <span style={{ fontSize: `${(data.teamNames?.away?.size2 || 50) * 0.8}px`, lineHeight: 1, marginTop: "4px" }}>{data.teamNames?.away?.line2}</span>
                       )}
                    </div>
                    <div className="w-8 h-[50px] rounded-sm mb-1 shadow-sm shrink-0" style={{ backgroundColor: data.teamColors?.away || "#ec4899" }}></div>
