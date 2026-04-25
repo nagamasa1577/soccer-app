@@ -4,7 +4,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { initializeApp } from "firebase/app";
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, signInWithCustomToken, signInAnonymously } from "firebase/auth";
-import { getFirestore, doc, getDoc, setDoc, onSnapshot, collection, query, where } from "firebase/firestore";
+import { getFirestore, doc, getDoc, setDoc, onSnapshot, collection } from "firebase/firestore";
 
 // ==========================================
 // Firebase Setup
@@ -279,7 +279,7 @@ function MainController() {
   return (
     <div className="fixed inset-0 bg-black overflow-hidden font-sans">
       
-      {/* ▼ 修正③：メニューボタンを極限まで右上端に寄せて被りを回避 */}
+      {/* 修正③：メニューボタンを極限まで右上端に寄せて被りを回避 */}
       <button 
         onClick={() => setIsMenuOpen(!isMenuOpen)}
         className="absolute top-1 right-1 z-[100] w-10 h-10 bg-slate-800/60 rounded border border-white/10 flex items-center justify-center text-white/80 hover:bg-slate-700 hover:text-white transition-colors shadow-lg backdrop-blur-md"
@@ -289,7 +289,7 @@ function MainController() {
         </svg>
       </button>
 
-      {/* ▼ 修正③：開くメニュー本体も右上端を基準にする */}
+      {/* 修正③：開くメニュー本体も右上端を基準にする */}
       {isMenuOpen && (
         <div className="absolute top-14 right-1 z-[100] w-80 bg-white p-6 rounded-lg border-2 border-slate-200 shadow-2xl flex flex-col gap-4">
           <div className="flex items-center justify-between pb-4 border-b border-slate-200">
@@ -336,14 +336,18 @@ function Scoreboard({ user, courtId }) {
   const [isLoaded, setIsLoaded] = useState(false);
   
   // Soccer specific states
-  const [tournamentName, setTournamentName] = useState("第1回 ジュニアカップ");
+  // 修正②⑤：データ構造をオブジェクト（文字とサイズ）に変更
+  const [tournamentName, setTournamentName] = useState({ text: "第1回 ジュニアカップ", size: 70 });
   const [halfTimeDuration, setHalfTimeDuration] = useState(20); 
   const [extraTimeDuration, setExtraTimeDuration] = useState(5); 
   const [hasExtraTime, setHasExtraTime] = useState(false); 
   const [hasPK, setHasPK] = useState(true); 
   const [period, setPeriod] = useState("1st"); // '1st', '2nd', '1stEX', '2ndEX', 'PK', 'End'
   const [score, setScore] = useState({ home: 0, away: 0 }); 
-  const [teamNames, setTeamNames] = useState({ home: "大阪", away: "奈良" });
+  const [teamNames, setTeamNames] = useState({ 
+    home: { line1: "大阪", line2: "", size1: 100, size2: 50 }, 
+    away: { line1: "奈良", line2: "", size1: 100, size2: 50 } 
+  });
   const [teamColors, setTeamColors] = useState({ home: "#0ea5e9", away: "#ec4899" });
   const [timer, setTimer] = useState({ isRunning: false, startTime: null, accumulated: 0 });
   const [additionalTime, setAdditionalTime] = useState(0);
@@ -367,14 +371,22 @@ function Scoreboard({ user, courtId }) {
         const snap = await getDoc(courtRef);
         if (snap.exists() && isMounted) {
           const d = snap.data();
-          if(d.tournamentName !== undefined) setTournamentName(d.tournamentName);
+          // 修正②⑤：古いデータ形式（単なる文字列）が来てもエラーにならないように自動変換
+          if(d.tournamentName !== undefined) {
+             setTournamentName(typeof d.tournamentName === 'string' ? { text: d.tournamentName, size: 70 } : d.tournamentName);
+          }
           if(d.halfTimeDuration !== undefined) setHalfTimeDuration(d.halfTimeDuration);
           if(d.extraTimeDuration !== undefined) setExtraTimeDuration(d.extraTimeDuration);
           if(d.hasExtraTime !== undefined) setHasExtraTime(d.hasExtraTime);
           if(d.hasPK !== undefined) setHasPK(d.hasPK);
           if(d.period) setPeriod(d.period);
           if(d.score) setScore(d.score);
-          if(d.teamNames) setTeamNames(d.teamNames);
+          if(d.teamNames) {
+             setTeamNames({
+                home: typeof d.teamNames.home === 'string' ? { line1: d.teamNames.home, line2: "", size1: 100, size2: 50 } : (d.teamNames.home || { line1: "", line2: "", size1: 100, size2: 50 }),
+                away: typeof d.teamNames.away === 'string' ? { line1: d.teamNames.away, line2: "", size1: 100, size2: 50 } : (d.teamNames.away || { line1: "", line2: "", size1: 100, size2: 50 })
+             });
+          }
           if(d.teamColors) setTeamColors(d.teamColors);
           if(d.timer) setTimer(d.timer);
           if(d.additionalTime !== undefined) setAdditionalTime(d.additionalTime);
@@ -409,9 +421,10 @@ function Scoreboard({ user, courtId }) {
   const currentDuration = (period === '1stEX' || period === '2ndEX') ? extraTimeDuration : halfTimeDuration;
   const { formattedTime, isOverTime } = useTimer(timer, currentDuration);
 
-  // ▼ 修正④：UNDO/REDOの履歴から timer と additionalTime(AT) を除外
+  // 修正④：UNDO/REDOの履歴に additionalTime (AT) を復活させる
   const getCurrentStateSnapshot = () => ({ 
     tournamentName, halfTimeDuration, extraTimeDuration, hasExtraTime, hasPK, period, score: { ...score }, teamNames: { ...teamNames }, teamColors: { ...teamColors },
+    additionalTime, // ATを履歴に含める
     pkState: { home: [...(pkState?.home||[])], away: [...(pkState?.away||[])] },
     firstHalfScore: { ...firstHalfScore }
   });
@@ -425,7 +438,8 @@ function Scoreboard({ user, courtId }) {
     setTournamentName(prev.tournamentName); setHalfTimeDuration(prev.halfTimeDuration); setExtraTimeDuration(prev.extraTimeDuration);
     setHasExtraTime(prev.hasExtraTime); setHasPK(prev.hasPK);
     setPeriod(prev.period); setScore(prev.score); setTeamNames(prev.teamNames); setTeamColors(prev.teamColors);
-    // タイマーとATは復元せずそのまま進行させる
+    // タイマーは復元しないが、ATは復元する
+    setAdditionalTime(prev.additionalTime);
     setPkState(prev.pkState); setFirstHalfScore(prev.firstHalfScore);
     setHistory(h => h.slice(0, -1)); 
   };
@@ -437,7 +451,8 @@ function Scoreboard({ user, courtId }) {
     setTournamentName(next.tournamentName); setHalfTimeDuration(next.halfTimeDuration); setExtraTimeDuration(next.extraTimeDuration);
     setHasExtraTime(next.hasExtraTime); setHasPK(next.hasPK);
     setPeriod(next.period); setScore(next.score); setTeamNames(next.teamNames); setTeamColors(next.teamColors);
-    // タイマーとATは復元せずそのまま進行させる
+    // タイマーは復元しないが、ATは復元する
+    setAdditionalTime(next.additionalTime);
     setPkState(next.pkState); setFirstHalfScore(next.firstHalfScore);
     setFuture(f => f.slice(0, -1)); 
   };
@@ -466,7 +481,7 @@ function Scoreboard({ user, courtId }) {
     const homePkScore = homeList.filter(r => r === 'O').length;
     const awayPkScore = awayList.filter(r => r === 'O').length;
     
-    // ▼ 修正：どちらかが5回「未満」の場合のみ、残りキック数による決着判定を行う
+    // どちらかが5回「未満」の場合のみ、残りキック数による決着判定を行う
     if (homeKicks < 5 || awayKicks < 5) {
       const homeRemaining = Math.max(5 - homeKicks, 0);
       const awayRemaining = Math.max(5 - awayKicks, 0);
@@ -474,7 +489,7 @@ function Scoreboard({ user, courtId }) {
       if (awayPkScore > homePkScore + homeRemaining) return 'away';
     }
 
-    // ▼ 修正：両チームが5回「以上」蹴っている場合は、必ず同回数になった時だけ判定する
+    // 両チームが5回「以上」蹴っている場合は、必ず同回数になった時だけ判定する
     if (homeKicks >= 5 && awayKicks >= 5 && homeKicks === awayKicks) {
       if (homePkScore !== awayPkScore) return homePkScore > awayPkScore ? 'home' : 'away';
     }
@@ -545,7 +560,7 @@ function Scoreboard({ user, courtId }) {
 
   if (!isLoaded) return <div className="flex items-center justify-center min-h-screen bg-black text-pink-500 font-black tracking-widest">SYNCING...</div>;
 
-  // ▼ 修正：より安全でシンプルな枠数計算に変更
+  // 安全でシンプルな枠数計算
   const homeKicks = pkState?.home?.length || 0;
   const awayKicks = pkState?.away?.length || 0;
   const maxKicks = Math.max(homeKicks, awayKicks);
@@ -568,19 +583,23 @@ function Scoreboard({ user, courtId }) {
       <PinchZoomWrapper>
         <div className="font-sans text-white w-[900px] md:w-[1000px] max-w-[95vw] flex flex-col items-center relative z-20">
           
-          {/* 大会名（枠の外側） - ブラックアウトラインでくっきりと */}
+          {/* 修正⑤：大会名（字間を自然にし、サイズを設定から適用） */}
           <div 
-            className="text-white text-5xl md:text-7xl font-black tracking-[0.2em] mb-8 cursor-pointer pointer-events-auto uppercase drop-shadow-xl"
-            style={{ textShadow: "2px 2px 0 #000, -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 0px 2px 0 #000, 0px -2px 0 #000, 2px 0px 0 #000, -2px 0px 0 #000, 0px 6px 12px rgba(0,0,0,0.5)" }}
+            className="text-white font-black mb-8 cursor-pointer pointer-events-auto uppercase drop-shadow-xl"
+            style={{ 
+               fontSize: `${tournamentName?.size || 70}px`, 
+               letterSpacing: "normal", 
+               textShadow: "2px 2px 0 #000, -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 0px 2px 0 #000, 0px -2px 0 #000, 2px 0px 0 #000, -2px 0px 0 #000, 0px 6px 12px rgba(0,0,0,0.5)" 
+            }}
             onClick={() => setShowSettingsModal(true)}
           >
-             {String(tournamentName || "")}
+             {String(tournamentName?.text || "")}
           </div>
 
           {/* Main Board Container (Pop & Clean Style) */}
           <div className="relative w-full aspect-[16/9] rounded-2xl border-[3px] border-white/60 shadow-[0_20px_50px_rgba(0,0,0,0.8)] flex flex-col overflow-hidden backdrop-blur-sm">
             
-            {/* 背景グループ (ここに flex flex-col を復活！) */}
+            {/* 背景グループ */}
             <div className="absolute inset-0 z-0 pointer-events-none flex flex-col">
                 <div className="flex-[3] bg-white/85"></div>
                 <div className="flex-[1] bg-pink-50/85"></div>
@@ -595,23 +614,17 @@ function Scoreboard({ user, courtId }) {
               <div className="flex-1 flex flex-col justify-end pb-8 pointer-events-auto">
                 <div className="w-full flex items-end justify-center gap-4 md:gap-12 px-12">
                   
-                  {/* ▼ 修正②：HOME チーム名の文字数に応じた自動サイズ・2段組調整 */}
+                  {/* 修正②：HOME チーム名のマニュアル2段組・サイズ調整 */}
                   <div className="flex-1 flex items-end justify-end gap-2 md:gap-4">
                     <div className="w-6 h-8 md:w-10 md:h-[50px] rounded-sm mb-1 shadow-sm transition-colors shrink-0" style={{ backgroundColor: teamColors?.home || "#0ea5e9" }}></div>
                     <div 
-                      className={`text-center font-black text-[#0f172a] uppercase drop-shadow-md flex flex-col justify-center ${
-                         (teamNames?.home || "").length <= 2 ? "text-6xl md:text-[100px] leading-none" : 
-                         (teamNames?.home || "").length <= 4 ? "text-5xl md:text-[80px] leading-none" : 
-                         "text-4xl md:text-[55px] leading-tight"
-                      }`} 
+                      className="text-center font-black text-[#0f172a] uppercase drop-shadow-md flex flex-col justify-center items-center" 
                       style={{ textShadow: "3px 3px 0 #fff, -3px -3px 0 #fff, 3px -3px 0 #fff, -3px 3px 0 #fff, 0 6px 12px rgba(0,0,0,0.2)", letterSpacing: "-0.02em" }}
                     >
-                       {(teamNames?.home || "").length >= 5 ? (
-                          <>
-                             <span>{String(teamNames?.home || "").slice(0, Math.ceil(String(teamNames?.home || "").length / 2))}</span>
-                             <span>{String(teamNames?.home || "").slice(Math.ceil(String(teamNames?.home || "").length / 2))}</span>
-                          </>
-                       ) : String(teamNames?.home || "")}
+                       <span style={{ fontSize: `${teamNames?.home?.size1 || 100}px`, lineHeight: 1 }}>{teamNames?.home?.line1 || ""}</span>
+                       {(teamNames?.home?.line2) && (
+                          <span style={{ fontSize: `${teamNames?.home?.size2 || 50}px`, lineHeight: 1, marginTop: "4px" }}>{teamNames?.home?.line2}</span>
+                       )}
                     </div>
                     <div className="w-6 h-8 md:w-10 md:h-[50px] rounded-sm mb-1 shadow-sm transition-colors shrink-0" style={{ backgroundColor: teamColors?.home || "#0ea5e9" }}></div>
                   </div>
@@ -619,23 +632,17 @@ function Scoreboard({ user, courtId }) {
                   {/* VS or - */}
                   <div className="text-5xl w-8 md:w-12 opacity-0 shrink-0">-</div>
                   
-                  {/* ▼ 修正②：AWAY チーム名の文字数に応じた自動サイズ・2段組調整 */}
+                  {/* 修正②：AWAY チーム名のマニュアル2段組・サイズ調整 */}
                   <div className="flex-1 flex items-end justify-start gap-2 md:gap-4">
                     <div className="w-6 h-8 md:w-10 md:h-[50px] rounded-sm mb-1 shadow-sm transition-colors shrink-0" style={{ backgroundColor: teamColors?.away || "#ec4899" }}></div>
                     <div 
-                      className={`text-center font-black text-[#0f172a] uppercase drop-shadow-md flex flex-col justify-center ${
-                         (teamNames?.away || "").length <= 2 ? "text-6xl md:text-[100px] leading-none" : 
-                         (teamNames?.away || "").length <= 4 ? "text-5xl md:text-[80px] leading-none" : 
-                         "text-4xl md:text-[55px] leading-tight"
-                      }`} 
+                      className="text-center font-black text-[#0f172a] uppercase drop-shadow-md flex flex-col justify-center items-center" 
                       style={{ textShadow: "3px 3px 0 #fff, -3px -3px 0 #fff, 3px -3px 0 #fff, -3px 3px 0 #fff, 0 6px 12px rgba(0,0,0,0.2)", letterSpacing: "-0.02em" }}
                     >
-                       {(teamNames?.away || "").length >= 5 ? (
-                          <>
-                             <span>{String(teamNames?.away || "").slice(0, Math.ceil(String(teamNames?.away || "").length / 2))}</span>
-                             <span>{String(teamNames?.away || "").slice(Math.ceil(String(teamNames?.away || "").length / 2))}</span>
-                          </>
-                       ) : String(teamNames?.away || "")}
+                       <span style={{ fontSize: `${teamNames?.away?.size1 || 100}px`, lineHeight: 1 }}>{teamNames?.away?.line1 || ""}</span>
+                       {(teamNames?.away?.line2) && (
+                          <span style={{ fontSize: `${teamNames?.away?.size2 || 50}px`, lineHeight: 1, marginTop: "4px" }}>{teamNames?.away?.line2}</span>
+                       )}
                     </div>
                     <div className="w-6 h-8 md:w-10 md:h-[50px] rounded-sm mb-1 shadow-sm transition-colors shrink-0" style={{ backgroundColor: teamColors?.away || "#ec4899" }}></div>
                   </div>
@@ -745,7 +752,7 @@ function Scoreboard({ user, courtId }) {
               ⚙️
             </button>
 
-            {/* ▼ 修正①：左下：AT設定＆終了ボタン */}
+            {/* 修正①：左下：AT設定＆終了ボタン */}
             <div className="absolute bottom-4 left-4 md:bottom-6 md:left-6 flex gap-2 md:gap-3 z-30">
               {period !== 'PK' && (
                 <button onClick={() => { saveHistory(); setAdditionalTime(prev => prev + 1); }} className="px-3 py-2 md:px-5 md:py-3 bg-slate-800/40 hover:bg-slate-800/70 border border-white/20 text-white/80 hover:text-white text-xs md:text-sm font-black tracking-widest rounded shadow-md transition-colors uppercase backdrop-blur-sm">
@@ -799,9 +806,20 @@ function Scoreboard({ user, courtId }) {
 // Settings Modal Component (一括設定画面)
 // ==========================================
 function SettingsModal({ currentData, onSave, onClose, onReset }) {
-  const [tName, setTName] = useState(currentData?.tournamentName || "");
-  const [hName, setHName] = useState(currentData?.teamNames?.home || "");
-  const [aName, setAName] = useState(currentData?.teamNames?.away || "");
+  // 修正②⑤：設定用のStateを細分化
+  const [tNameText, setTNameText] = useState(currentData?.tournamentName?.text || "");
+  const [tNameSize, setTNameSize] = useState(currentData?.tournamentName?.size || 70);
+  
+  const [hLine1, setHLine1] = useState(currentData?.teamNames?.home?.line1 || "");
+  const [hLine2, setHLine2] = useState(currentData?.teamNames?.home?.line2 || "");
+  const [hSize1, setHSize1] = useState(currentData?.teamNames?.home?.size1 || 100);
+  const [hSize2, setHSize2] = useState(currentData?.teamNames?.home?.size2 || 50);
+  
+  const [aLine1, setALine1] = useState(currentData?.teamNames?.away?.line1 || "");
+  const [aLine2, setALine2] = useState(currentData?.teamNames?.away?.line2 || "");
+  const [aSize1, setASize1] = useState(currentData?.teamNames?.away?.size1 || 100);
+  const [aSize2, setASize2] = useState(currentData?.teamNames?.away?.size2 || 50);
+
   const [hColor, setHColor] = useState(currentData?.teamColors?.home || "#0ea5e9");
   const [aColor, setAColor] = useState(currentData?.teamColors?.away || "#ec4899");
   const [hScore, setHScore] = useState(currentData?.score?.home || 0);
@@ -823,8 +841,11 @@ function SettingsModal({ currentData, onSave, onClose, onReset }) {
     const parsedSecs = parseInt(secs) || 0;
     const newAccumulated = (parsedMins * 60 + parsedSecs) * 1000;
     onSave({
-      tournamentName: tName,
-      teamNames: { home: hName, away: aName },
+      tournamentName: { text: tNameText, size: parseInt(tNameSize) || 70 },
+      teamNames: { 
+         home: { line1: hLine1, line2: hLine2, size1: parseInt(hSize1) || 100, size2: parseInt(hSize2) || 50 }, 
+         away: { line1: aLine1, line2: aLine2, size1: parseInt(aSize1) || 100, size2: parseInt(aSize2) || 50 } 
+      },
       teamColors: { home: hColor, away: aColor },
       score: { home: parseInt(hScore) || 0, away: parseInt(aScore) || 0 },
       halfTimeDuration: parseInt(duration) || 20,
@@ -860,24 +881,48 @@ function SettingsModal({ currentData, onSave, onClose, onReset }) {
           </label>
         </div>
 
-        <div className="flex flex-col gap-2">
-          <label className="text-slate-500 text-xs font-bold tracking-widest uppercase">大会名</label>
-          <input value={tName} onChange={e=>setTName(e.target.value)} className="w-full bg-slate-50 text-[#0f172a] px-4 py-3 rounded border border-slate-300 focus:border-pink-500 focus:outline-none font-bold" />
+        {/* 修正⑤：大会名の入力（サイズ調整付き） */}
+        <div className="flex gap-4">
+          <div className="flex flex-col gap-2 flex-[3]">
+            <label className="text-slate-500 text-xs font-bold tracking-widest uppercase">大会名</label>
+            <input value={tNameText} onChange={e=>setTNameText(e.target.value)} className="w-full bg-slate-50 text-[#0f172a] px-4 py-3 rounded border border-slate-300 focus:border-pink-500 focus:outline-none font-bold" />
+          </div>
+          <div className="flex flex-col gap-2 flex-[1]">
+            <label className="text-slate-500 text-xs font-bold tracking-widest uppercase">サイズ</label>
+            <input type="number" value={tNameSize} onChange={e=>setTNameSize(e.target.value)} className="w-full bg-slate-50 text-[#0f172a] px-4 py-3 rounded border border-slate-300 focus:border-pink-500 focus:outline-none font-bold text-center" />
+          </div>
         </div>
 
-        <div className="flex gap-4">
-          <div className="flex flex-col gap-2 flex-1">
-            <label className="text-slate-500 text-xs font-bold tracking-widest uppercase">ホーム チーム名 & カラー</label>
-            <div className="flex items-center gap-2">
-               <input type="color" value={hColor} onChange={e=>setHColor(e.target.value)} className="w-12 h-12 rounded cursor-pointer shrink-0 border border-slate-300 bg-white p-1" />
-               <input value={hName} onChange={e=>setHName(e.target.value)} className="w-full bg-slate-50 text-[#0f172a] px-4 py-3 rounded border border-slate-300 focus:border-pink-500 focus:outline-none font-bold uppercase" />
+        {/* 修正②：チーム名の詳細入力（行ごとの文字とサイズ） */}
+        <div className="flex flex-col gap-4 md:flex-row">
+          {/* HOME */}
+          <div className="flex flex-col gap-3 flex-1 p-4 bg-slate-50 rounded-lg border border-slate-200 shadow-sm">
+            <label className="text-[#0f172a] text-xs font-black tracking-widest uppercase flex items-center gap-3">
+               <input type="color" value={hColor} onChange={e=>setHColor(e.target.value)} className="w-8 h-8 rounded cursor-pointer shrink-0 border border-slate-300 bg-white p-0.5" />
+               HOME チーム
+            </label>
+            <div className="flex gap-2">
+               <input placeholder="1行目" value={hLine1} onChange={e=>setHLine1(e.target.value)} className="flex-1 min-w-0 bg-white text-[#0f172a] px-3 py-2 rounded border border-slate-300 focus:border-pink-500 focus:outline-none font-bold text-sm" />
+               <input type="number" placeholder="サイズ" value={hSize1} onChange={e=>setHSize1(e.target.value)} className="w-16 bg-white text-[#0f172a] px-2 py-2 rounded border border-slate-300 focus:border-pink-500 focus:outline-none font-bold text-sm text-center" />
+            </div>
+            <div className="flex gap-2">
+               <input placeholder="2行目" value={hLine2} onChange={e=>setHLine2(e.target.value)} className="flex-1 min-w-0 bg-white text-[#0f172a] px-3 py-2 rounded border border-slate-300 focus:border-pink-500 focus:outline-none font-bold text-sm" />
+               <input type="number" placeholder="サイズ" value={hSize2} onChange={e=>setHSize2(e.target.value)} className="w-16 bg-white text-[#0f172a] px-2 py-2 rounded border border-slate-300 focus:border-pink-500 focus:outline-none font-bold text-sm text-center" />
             </div>
           </div>
-          <div className="flex flex-col gap-2 flex-1">
-            <label className="text-slate-500 text-xs font-bold tracking-widest uppercase">アウェイ チーム名 & カラー</label>
-            <div className="flex items-center gap-2">
-               <input type="color" value={aColor} onChange={e=>setAColor(e.target.value)} className="w-12 h-12 rounded cursor-pointer shrink-0 border border-slate-300 bg-white p-1" />
-               <input value={aName} onChange={e=>setAName(e.target.value)} className="w-full bg-slate-50 text-[#0f172a] px-4 py-3 rounded border border-slate-300 focus:border-pink-500 focus:outline-none font-bold uppercase" />
+          {/* AWAY */}
+          <div className="flex flex-col gap-3 flex-1 p-4 bg-slate-50 rounded-lg border border-slate-200 shadow-sm">
+            <label className="text-[#0f172a] text-xs font-black tracking-widest uppercase flex items-center gap-3">
+               <input type="color" value={aColor} onChange={e=>setAColor(e.target.value)} className="w-8 h-8 rounded cursor-pointer shrink-0 border border-slate-300 bg-white p-0.5" />
+               AWAY チーム
+            </label>
+            <div className="flex gap-2">
+               <input placeholder="1行目" value={aLine1} onChange={e=>setALine1(e.target.value)} className="flex-1 min-w-0 bg-white text-[#0f172a] px-3 py-2 rounded border border-slate-300 focus:border-pink-500 focus:outline-none font-bold text-sm" />
+               <input type="number" placeholder="サイズ" value={aSize1} onChange={e=>setASize1(e.target.value)} className="w-16 bg-white text-[#0f172a] px-2 py-2 rounded border border-slate-300 focus:border-pink-500 focus:outline-none font-bold text-sm text-center" />
+            </div>
+            <div className="flex gap-2">
+               <input placeholder="2行目" value={aLine2} onChange={e=>setALine2(e.target.value)} className="flex-1 min-w-0 bg-white text-[#0f172a] px-3 py-2 rounded border border-slate-300 focus:border-pink-500 focus:outline-none font-bold text-sm" />
+               <input type="number" placeholder="サイズ" value={aSize2} onChange={e=>setASize2(e.target.value)} className="w-16 bg-white text-[#0f172a] px-2 py-2 rounded border border-slate-300 focus:border-pink-500 focus:outline-none font-bold text-sm text-center" />
             </div>
           </div>
         </div>
@@ -919,7 +964,7 @@ function SettingsModal({ currentData, onSave, onClose, onReset }) {
                <input type="number" value={secs} onChange={e=>setSecs(e.target.value)} className="w-full bg-slate-50 text-[#0f172a] px-2 py-3 rounded border border-slate-300 focus:border-pink-500 focus:outline-none font-bold text-center text-xl font-mono tabular-nums" />
             </div>
           </div>
-          {/* ▼ 修正①：「ロスタイム表記」を「AT表記」に変更 */}
+          {/* 修正①：「ロスタイム表記」を「AT表記」に変更 */}
           <div className="flex flex-col gap-2 flex-1">
             <label className="text-slate-500 text-xs font-bold tracking-widest uppercase">AT表記</label>
             <div className="flex items-center gap-2">
@@ -1170,7 +1215,7 @@ function MiniBoard({ courtId, onRemove, user }) {
   const currentDuration = (data?.period === '1stEX' || data?.period === '2ndEX') ? data?.extraTimeDuration : data?.halfTimeDuration;
   const { formattedTime, isOverTime } = useTimer(data?.timer, currentDuration);
 
-  // ▼ 修正：安全な枠数計算
+  // 安全な枠数計算
   const homeKicks = data?.pkState?.home?.length || 0;
   const awayKicks = data?.pkState?.away?.length || 0;
   const maxKicks = Math.max(homeKicks, awayKicks);
@@ -1200,48 +1245,40 @@ function MiniBoard({ courtId, onRemove, user }) {
          
          {/* 大会名 & チーム名 */}
          <div className="flex-1 w-full flex flex-col justify-between pt-2 pb-2">
-            <div className="w-full text-center text-[#0f172a] font-black text-sm truncate opacity-70 uppercase tracking-widest">
-               {String(data.tournamentName || "MATCH")}
+            {/* 修正⑤：大会名 */}
+            <div 
+               className="w-full text-center text-[#0f172a] font-black truncate opacity-70 uppercase"
+               style={{ fontSize: `${(data.tournamentName?.size || 70) * 0.25}px`, letterSpacing: "normal" }}
+            >
+               {String(data.tournamentName?.text || "MATCH")}
             </div>
             <div className="w-full flex items-end justify-center gap-4 px-4 pb-2">
-               {/* ▼ 修正②：MiniBoard HOME チーム名の自動サイズ・2段組調整 */}
+               {/* 修正②：MiniBoard HOME チーム名 (縮小スケールで適用) */}
                <div className="flex-1 flex items-end justify-end gap-1.5">
                   <div className="w-2 h-5 rounded-sm mb-0.5 shadow-sm shrink-0" style={{ backgroundColor: data.teamColors?.home || "#0ea5e9" }}></div>
                   <div 
-                     className={`text-center font-black text-[#0f172a] uppercase drop-shadow-sm flex flex-col justify-center ${
-                        (data.teamNames?.home || "").length <= 2 ? "text-3xl leading-none" : 
-                        (data.teamNames?.home || "").length <= 4 ? "text-2xl leading-none" : 
-                        "text-[16px] leading-[1.1]"
-                     }`} 
+                     className="text-center font-black text-[#0f172a] uppercase drop-shadow-sm flex flex-col justify-center items-center" 
                      style={{ textShadow: "1px 1px 0 #fff, -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff" }}
                   >
-                     {(data.teamNames?.home || "").length >= 5 ? (
-                        <>
-                           <span>{String(data.teamNames?.home || "").slice(0, Math.ceil(String(data.teamNames?.home || "").length / 2))}</span>
-                           <span>{String(data.teamNames?.home || "").slice(Math.ceil(String(data.teamNames?.home || "").length / 2))}</span>
-                        </>
-                     ) : String(data.teamNames?.home || "")}
+                     <span style={{ fontSize: `${(data.teamNames?.home?.size1 || 100) * 0.3}px`, lineHeight: 1 }}>{data.teamNames?.home?.line1 || ""}</span>
+                     {(data.teamNames?.home?.line2) && (
+                        <span style={{ fontSize: `${(data.teamNames?.home?.size2 || 50) * 0.3}px`, lineHeight: 1, marginTop: "2px" }}>{data.teamNames?.home?.line2}</span>
+                     )}
                   </div>
                   <div className="w-2 h-5 rounded-sm mb-0.5 shadow-sm shrink-0" style={{ backgroundColor: data.teamColors?.home || "#0ea5e9" }}></div>
                </div>
                <div className="w-2 shrink-0"></div>
-               {/* ▼ 修正②：MiniBoard AWAY チーム名の自動サイズ・2段組調整 */}
+               {/* 修正②：MiniBoard AWAY チーム名 */}
                <div className="flex-1 flex items-end justify-start gap-1.5">
                   <div className="w-2 h-5 rounded-sm mb-0.5 shadow-sm shrink-0" style={{ backgroundColor: data.teamColors?.away || "#ec4899" }}></div>
                   <div 
-                     className={`text-center font-black text-[#0f172a] uppercase drop-shadow-sm flex flex-col justify-center ${
-                        (data.teamNames?.away || "").length <= 2 ? "text-3xl leading-none" : 
-                        (data.teamNames?.away || "").length <= 4 ? "text-2xl leading-none" : 
-                        "text-[16px] leading-[1.1]"
-                     }`} 
+                     className="text-center font-black text-[#0f172a] uppercase drop-shadow-sm flex flex-col justify-center items-center" 
                      style={{ textShadow: "1px 1px 0 #fff, -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff" }}
                   >
-                     {(data.teamNames?.away || "").length >= 5 ? (
-                        <>
-                           <span>{String(data.teamNames?.away || "").slice(0, Math.ceil(String(data.teamNames?.away || "").length / 2))}</span>
-                           <span>{String(data.teamNames?.away || "").slice(Math.ceil(String(data.teamNames?.away || "").length / 2))}</span>
-                        </>
-                     ) : String(data.teamNames?.away || "")}
+                     <span style={{ fontSize: `${(data.teamNames?.away?.size1 || 100) * 0.3}px`, lineHeight: 1 }}>{data.teamNames?.away?.line1 || ""}</span>
+                     {(data.teamNames?.away?.line2) && (
+                        <span style={{ fontSize: `${(data.teamNames?.away?.size2 || 50) * 0.3}px`, lineHeight: 1, marginTop: "2px" }}>{data.teamNames?.away?.line2}</span>
+                     )}
                   </div>
                   <div className="w-2 h-5 rounded-sm mb-0.5 shadow-sm shrink-0" style={{ backgroundColor: data.teamColors?.away || "#ec4899" }}></div>
                </div>
@@ -1264,7 +1301,7 @@ function MiniBoard({ courtId, onRemove, user }) {
                <div className="text-[5rem] font-mono font-black text-white drop-shadow-md tabular-nums leading-none">{Number(data.score?.away || 0)}</div>
             </div>
 
-            {/* PK Status Overlay for MiniBoard (幅160px固定・折り返し・エラー防止付き) */}
+            {/* PK Status Overlay for MiniBoard */}
             {(data.period === 'PK' || (data.period === 'End' && (homeKicks > 0 || awayKicks > 0))) && (
                <div className="absolute -bottom-5 translate-y-1/2 w-full flex justify-between px-8 z-30 pointer-events-auto">
                  <div className="flex gap-1 bg-white/90 px-2 py-1.5 rounded-xl shadow-md border border-slate-200 backdrop-blur-sm w-[160px] flex-wrap justify-center">
@@ -1310,7 +1347,7 @@ function MiniBoard({ courtId, onRemove, user }) {
             </div>
             {data.additionalTime > 0 && data.period !== 'PK' && data.period !== 'End' && <span className="absolute right-4 bg-pink-600 border border-white text-white px-2 py-0.5 rounded shadow-sm font-black text-sm">+{Number(data.additionalTime)}</span>}
          
-            {/* 試合終了時スコアバッジ (bottom-2 に配置して絶対に重ならないようにする) */}
+            {/* 試合終了時スコアバッジ */}
             {data.period === 'End' && (
               <div className="absolute bottom-2 bg-white border border-cyan-400 px-3 py-1 rounded-full flex gap-3 text-[#0f172a] font-bold tracking-widest shadow-md z-30 uppercase text-[9px]">
                  <div>前半: {Number(data.firstHalfScore?.home || 0)} - {Number(data.firstHalfScore?.away || 0)}</div>
@@ -1374,7 +1411,7 @@ function ObsScoreboard({ courtId }) {
   const currentDuration = (data?.period === '1stEX' || data?.period === '2ndEX') ? data?.extraTimeDuration : data?.halfTimeDuration;
   const { formattedTime, isOverTime } = useTimer(data?.timer, currentDuration);
 
-  // ▼ 修正：安全な枠数計算
+  // 安全な枠数計算
   const homeKicks = data?.pkState?.home?.length || 0;
   const awayKicks = data?.pkState?.away?.length || 0;
   const maxKicks = Math.max(homeKicks, awayKicks);
@@ -1387,28 +1424,28 @@ function ObsScoreboard({ courtId }) {
       <style>{"body { background-color: transparent !important; margin: 0; padding: 0; overflow: hidden; }"}</style>
       <div style={{ width: '800px', height: '450px' }} className="relative bg-transparent font-sans select-none text-white pointer-events-none transform origin-top-left flex flex-col items-center">
         
-        {/* ▼ 修正⑤：大会名（字間を自然にし、サイズを設定から適用） */}
+        {/* 修正⑤：大会名（字間を自然にし、サイズを設定から適用） */}
         <div 
           className="text-white font-black mb-6 mt-2 uppercase drop-shadow-xl"
           style={{ 
              fontSize: `${data.tournamentName?.size || 70}px`, 
-             letterSpacing: "0.05em",
+             letterSpacing: "normal",
              textShadow: "2px 2px 0 #000, -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 0px 2px 0 #000, 0px -2px 0 #000, 2px 0px 0 #000, -2px 0px 0 #000, 0px 6px 12px rgba(0,0,0,0.5)" 
           }}
         >
              {String(data.tournamentName?.text || "")}
         </div>
 
-        {/* Obs Container (Pop & Clean Style - Glassmorphism) */}
+        {/* Obs Container */}
         <div className="w-full flex-1 rounded-xl border-[3px] border-white/60 shadow-[0_20px_50px_rgba(0,0,0,0.5)] flex flex-col overflow-hidden relative mb-4 backdrop-blur-sm">
           
-          {/* 背景グループ (透過度アップ・すりガラス感強調) */}
+          {/* 背景グループ */}
           <div className="absolute inset-0 z-0 pointer-events-none">
              <div className="absolute inset-0 flex flex-col">
                 <div className="flex-[3] bg-white/85"></div>
                 <div className="flex-[1] bg-pink-50/85"></div>
              </div>
-             {/* ストライプも透過度を合わせて調整 */}
+             {/* ストライプ */}
              <div className="absolute inset-0 opacity-40" style={{ backgroundImage: "repeating-linear-gradient(-45deg, transparent, transparent 15px, rgba(255,255,255,0.4) 15px, rgba(255,255,255,0.4) 30px)" }}></div>
           </div>
 
@@ -1417,7 +1454,7 @@ function ObsScoreboard({ courtId }) {
             {/* 上段：チーム名 */}
             <div className="flex-1 flex flex-col justify-end pb-8">
               <div className="w-full flex items-end justify-center gap-10 px-12">
-                {/* ▼ 修正②：OBS HOME チーム名のマニュアル2段組・サイズ調整 */}
+                {/* 修正②：OBS HOME チーム名のマニュアル2段組・サイズ調整 */}
                 <div className="flex-1 flex items-end justify-end gap-3">
                    <div className="w-8 h-[50px] rounded-sm mb-1 shadow-sm shrink-0" style={{ backgroundColor: data.teamColors?.home || "#0ea5e9" }}></div>
                    <div 
@@ -1432,7 +1469,7 @@ function ObsScoreboard({ courtId }) {
                    <div className="w-8 h-[50px] rounded-sm mb-1 shadow-sm shrink-0" style={{ backgroundColor: data.teamColors?.home || "#0ea5e9" }}></div>
                 </div>
                 <div className="text-5xl w-8 opacity-0 shrink-0">-</div>
-                {/* ▼ 修正②：OBS AWAY チーム名のマニュアル2段組・サイズ調整 */}
+                {/* 修正②：OBS AWAY チーム名のマニュアル2段組・サイズ調整 */}
                 <div className="flex-1 flex items-end justify-start gap-3">
                    <div className="w-8 h-[50px] rounded-sm mb-1 shadow-sm shrink-0" style={{ backgroundColor: data.teamColors?.away || "#ec4899" }}></div>
                    <div 
@@ -1455,7 +1492,6 @@ function ObsScoreboard({ courtId }) {
                 <div className="text-[10rem] leading-none font-mono font-black text-white drop-shadow-md tabular-nums">{Number(data.score?.home || 0)}</div>
               </div>
               
-              {/* PK戦の時はハイフンを消して「PK戦」と中央に表示 (OBS側) */}
               {data.period === 'PK' ? (
                 <div className="text-6xl font-black tracking-widest text-white drop-shadow-md z-10 whitespace-nowrap">PK戦</div>
               ) : (
@@ -1466,7 +1502,7 @@ function ObsScoreboard({ courtId }) {
                 <div className="text-[10rem] leading-none font-mono font-black text-white drop-shadow-md tabular-nums">{Number(data.score?.away || 0)}</div>
               </div>
 
-              {/* ▼ 修正：PK Status Overlay for OBS (折り返し対応) */}
+              {/* PK Status Overlay for OBS (折り返し対応) */}
               {(data.period === 'PK' || (data.period === 'End' && (homeKicks > 0 || awayKicks > 0))) && (
                  <div className="absolute -bottom-10 translate-y-1/2 w-full flex justify-between px-16 z-30 pointer-events-auto">
                    <div className="flex gap-2 bg-white/90 px-4 py-3 rounded-2xl shadow-lg border border-slate-200 backdrop-blur-sm max-w-[48%] flex-wrap justify-center">
